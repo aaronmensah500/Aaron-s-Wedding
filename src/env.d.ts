@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly PUBLIC_HIDE_SITE_EDITOR_LAUNCHER?: string;
   readonly PUBLIC_SUPABASE_URL?: string;
   readonly PUBLIC_SUPABASE_ANON_KEY?: string;
+  /** MapTiler API key for interactive Details map tiles (client-safe). */
+  readonly PUBLIC_MAPTILER_API_KEY?: string;
   /** Site origin for magic-link redirects, QR payloads, and calendar links — must be `PUBLIC_` so the client can read it. */
   readonly PUBLIC_SITE_URL?: string;
   /** Optional server-only fallback (same value as PUBLIC_SITE_URL) for API routes if the public var is unset. */
