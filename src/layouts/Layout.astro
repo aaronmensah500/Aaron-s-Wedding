@@ -1,0 +1,60 @@
+---
+interface Props {
+  title?: string;
+}
+const { title = "Aaron & Adaeze · 12.12.2026" } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Playfair+Display:wght@300;400;500&family=Ibarra+Real+Nova:wght@400;500&family=Jost:wght@300;400;500;600&family=Italianno&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style is:global>
+      body {
+        font-family: var(--sans);
+      }
+      #root {
+        min-height: 100vh;
+      }
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        z-index: 2147483647;
+        padding: 12px 16px;
+        background: var(--ivory, #f6f4ef);
+        color: var(--soft-black, #2a0a0e);
+        font: 600 14px/1.2 var(--sans, system-ui, sans-serif);
+        border-radius: 8px;
+        text-decoration: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      }
+      .skip-link:focus {
+        left: 12px;
+        top: 12px;
+        width: auto;
+        height: auto;
+        overflow: visible;
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <div id="root">
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

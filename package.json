@@ -1,0 +1,36 @@
+{
+  "name": "aaron-wedding",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "postinstall": "node scripts/fix-astro-session-driver.mjs",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@astrojs/node": "^10.1.0",
+    "@astrojs/react": "^5.0.4",
+    "@supabase/supabase-js": "^2.105.4",
+    "astro": "^6.3.1",
+    "dompurify": "^3.4.2",
+    "leaflet": "^1.9.4",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/jsdom": "^28.0.3",
+    "@types/leaflet": "^1.9.21",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "jsdom": "^29.1.1",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.6"
+  }
+}

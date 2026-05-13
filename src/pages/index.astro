@@ -1,0 +1,11 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+import "../styles/styles.css";
+import "../styles/sections.css";
+import WeddingApp from "../components/WeddingApp";
+---
+
+<Layout>
+  <WeddingApp client:only="react" />
+</Layout>

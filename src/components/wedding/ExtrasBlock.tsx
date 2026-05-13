@@ -1,0 +1,483 @@
+import { Fragment, useState, useMemo, useEffect } from "react";
+import { useWeddingContent } from "../../lib/weddingContent";
+import { Ph, Countdown } from "./Core";
+import { downloadWeddingIcs } from "../../lib/calendar";
+import { QrCodeBlock } from "./QrCodeBlock";
+import { buildSiteDeepLink } from "../../lib/siteUrl";
+import { openPaystackInline, type PaystackCurrency } from "../../lib/paystack";
+
+const PAYSTACK_CURRENCIES = new Set<string>(["GHS", "NGN", "USD", "ZAR", "KES", "XOF", "XAF"]);
+
+function parseAmountPresets(csv: string | undefined, fallback: number[]): number[] {
+  const parts = (csv || "")
+    .split(/[\s,;]+/)
+    .map(s => parseInt(s.replace(/\D/g, ""), 10))
+    .filter(n => Number.isFinite(n) && n > 0);
+  return parts.length ? parts : fallback;
+}
+
+function pickPaystackCurrency(regCode: string | undefined): PaystackCurrency {
+  const fromEnv = (import.meta.env.PUBLIC_PAYSTACK_CURRENCY || "").trim().toUpperCase();
+  const fromReg = (regCode || "").trim().toUpperCase();
+  const raw = fromEnv || fromReg || "GHS";
+  return (PAYSTACK_CURRENCIES.has(raw) ? raw : "GHS") as PaystackCurrency;
+}
+
+// ============================================================
+// REGISTRY
+// ============================================================
+export function Registry() {
+  const { content } = useWeddingContent();
+  const reg = content.registry || {};
+  const presets = useMemo(
+    () => parseAmountPresets(reg.amountPresetCsv as string | undefined, [200, 500, 1000, 2500, 5000]),
+    [reg.amountPresetCsv]
+  );
+  const currency = useMemo(() => pickPaystackCurrency(reg.payCurrencyCode as string | undefined), [reg.payCurrencyCode]);
+  const moneyFmt = useMemo(
+    () =>
+      new Intl.NumberFormat("en-GH", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 0,
+      }),
+    [currency]
+  );
+
+  const [amt, setAmt] = useState(presets[1] ?? 500);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customStr, setCustomStr] = useState("");
+  const [email, setEmail] = useState("");
+  const [giftName, setGiftName] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [paidRef, setPaidRef] = useState<string | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [registryQrPayload, setRegistryQrPayload] = useState("");
+
+  useEffect(() => {
+    setRegistryQrPayload(buildSiteDeepLink({ explicitUrl: reg.qrUrl as string | undefined, hash: "registry" }));
+  }, [reg.qrUrl]);
+
+  useEffect(() => {
+    if (presets.length && !presets.includes(amt) && !customOpen) {
+      setAmt(presets[1] ?? presets[0]);
+    }
+  }, [presets, amt, customOpen]);
+
+  const effectiveAmt = useMemo(() => {
+    if (!customOpen) return amt;
+    const n = parseInt(customStr.replace(/\D/g, ""), 10);
+    return Number.isFinite(n) && n > 0 ? Math.min(999999, n) : 0;
+  }, [customOpen, customStr, amt]);
+
+  const pickPreset = (p: number) => {
+    setCustomOpen(false);
+    setCustomStr("");
+    setAmt(p);
+  };
+
+  const pickCustom = () => {
+    setCustomOpen(true);
+    if (presets.includes(amt)) setCustomStr("");
+    else setCustomStr(String(amt));
+  };
+
+  const publicKey = (import.meta.env.PUBLIC_PAYSTACK_PUBLIC_KEY || "").trim();
+  const qrHostHint = useMemo(() => {
+    if (!registryQrPayload) return (reg.qrDomain as string) || "";
+    try {
+      return new URL(registryQrPayload).host;
+    } catch {
+      return (reg.qrDomain as string) || "";
+    }
+  }, [registryQrPayload, reg.qrDomain]);
+
+  const handleContribute = async () => {
+    setPayError(null);
+    setPaidRef(null);
+    if (!publicKey) {
+      setPayError((reg.paystackMissingKeyHint as string) || "Paystack is not configured.");
+      return;
+    }
+    const em = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      setPayError("Please enter a valid email address for your receipt.");
+      return;
+    }
+    if (!effectiveAmt) {
+      setPayError("Choose an amount.");
+      return;
+    }
+    setPaying(true);
+    try {
+      const ref = `gift_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      await openPaystackInline({
+        publicKey,
+        email: em,
+        amountMajor: effectiveAmt,
+        currency,
+        reference: ref,
+        metadata: {
+          source: "wedding_registry",
+          ...(giftName.trim() ? { guest_name: giftName.trim() } : {}),
+        },
+        onSuccess: reference => {
+          setPaidRef(reference);
+          setPaying(false);
+        },
+        onClose: () => {
+          setPaying(false);
+        },
+      });
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "Checkout could not start.");
+      setPaying(false);
+    }
+  };
+
+  return (
+    <section id="registry" className="section">
+      <div className="section__head reveal">
+        <div>
+          <div className="eyebrow">{reg.eyebrow} <span className="dot" /> {reg.eyebrowLabel}</div>
+          <h2 className="section__title">{reg.titleLine1}<em>{reg.titleEm}</em></h2>
+        </div>
+        <p className="section__lede">{reg.lede}</p>
+      </div>
+
+      <div className="registry__grid reveal-stagger">
+        <article className="registry-card">
+          <div className="registry-card__head">
+            <div>
+              <div className="eyebrow">{reg.fundEyebrow}</div>
+              <h4>{reg.fundTitle}</h4>
+            </div>
+            <div className="mono" style={{ color: "var(--champagne)" }}>{reg.currencies}</div>
+          </div>
+          <p className="section__lede" style={{ maxWidth: "100%" }}>{reg.fundBody}</p>
+
+          <div className="contribution-amts">
+            {presets.map(p => (
+              <button type="button" key={p} className={`choice ${!customOpen && amt === p ? "selected" : ""}`} onClick={() => pickPreset(p)}>
+                {moneyFmt.format(p)}
+              </button>
+            ))}
+            <button type="button" className={`choice ${customOpen ? "selected" : ""}`} onClick={pickCustom}>
+              Custom
+            </button>
+          </div>
+
+          {customOpen && (
+            <div className="field" style={{ marginTop: 16 }}>
+              <label htmlFor="registry-custom-amt">Amount ({currency})</label>
+              <input
+                id="registry-custom-amt"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="e.g. 750"
+                value={customStr}
+                onChange={e => setCustomStr(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="field" style={{ marginTop: 20 }}>
+            <label htmlFor="registry-gift-email">{reg.contributeEmailLabel}</label>
+            <input
+              id="registry-gift-email"
+              type="email"
+              autoComplete="email"
+              placeholder={reg.contributeEmailPlaceholder as string | undefined}
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="field" style={{ marginTop: 12 }}>
+            <label htmlFor="registry-gift-name">{reg.contributeNameLabel}</label>
+            <input
+              id="registry-gift-name"
+              type="text"
+              autoComplete="name"
+              placeholder={reg.contributeNamePlaceholder as string | undefined}
+              value={giftName}
+              onChange={e => setGiftName(e.target.value)}
+            />
+          </div>
+
+          <div className="payment-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div className="chip" />
+              <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> A</div>
+            </div>
+            <div>
+              <div className="num">Paystack · {currency}</div>
+              <div className="meta">
+                <div><div style={{ opacity: 0.5, marginBottom: 4 }}>To</div>Honeymoon fund</div>
+                <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Date</div>12 · 12 · 26</div>
+                <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Amount</div>{effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"}</div>
+              </div>
+            </div>
+          </div>
+
+          {payError && (
+            <p className="registry__hint registry__hint--error" role="alert">
+              {payError}
+            </p>
+          )}
+          {paidRef && (
+            <p className="registry__hint registry__hint--ok">
+              {reg.contributePaidNote} <strong className="mono">{paidRef}</strong>
+            </p>
+          )}
+
+          <button
+            type="button"
+            className="btn btn--gold"
+            style={{ marginTop: 24, width: "100%" }}
+            disabled={!effectiveAmt || paying}
+            onClick={() => void handleContribute()}
+          >
+            {paying ? "Opening checkout…" : <>Contribute {effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"} <span className="arrow">→</span></>}
+          </button>
+        </article>
+
+        <article className="registry-card qr-card">
+          <div className="registry-card__head">
+            <div>
+              <div className="eyebrow">{reg.qrEyebrow}</div>
+              <h4>{reg.qrTitle}</h4>
+            </div>
+          </div>
+          <div className="qr-block">
+            <QrCodeBlock value={registryQrPayload} label={reg.qrTitle as string} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--muted)" }}>
+            <span>{qrHostHint || "—"}</span>
+            <span style={{ color: "var(--champagne)" }}>{reg.qrHint}</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// LIVESTREAM
+// ============================================================
+export function Livestream() {
+  const { content } = useWeddingContent();
+  const st = content.stream || {};
+  const countdownTarget = useMemo(() => {
+    const d = new Date(content.site?.weddingDateIso);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }, [content.site?.weddingDateIso]);
+  const [playing, setPlaying] = useState(false);
+  const sched = st.schedule || [];
+  return (
+    <section id="stream" className="section section--dark">
+      <div className="section__head reveal">
+        <div>
+          <div className="eyebrow" style={{ color: "rgba(246,242,234,0.6)" }}>{st.eyebrow} <span className="dot" /> {st.eyebrowLabel}</div>
+          <h2 className="section__title" style={{ color: "var(--ivory)" }}>{st.titleLine1}<em>{st.titleEm}</em><br />{st.titleLine2}</h2>
+        </div>
+        <p className="section__lede">{st.lede}</p>
+      </div>
+
+      <div className="stream__wrap reveal">
+        <div className="stream__player">
+          <Ph label={st.playerImageLabel} src={st.playerImageUrl} variant="dark" />
+          <div className="stream__overlay">
+            <div className="stream__live"><span className="dot" /> {st.liveBadge}</div>
+            {!playing && (
+              <button type="button" className="stream__play" onClick={() => setPlaying(true)} aria-label="Play preview">
+                <svg viewBox="0 0 24 24"><path d="M5 3l16 9-16 9V3z" /></svg>
+              </button>
+            )}
+            <div className="stream__controls">
+              <span>{st.controlsLeft}</span>
+              <div className="progress" />
+              <span>{playing ? st.previewText : st.awaitingText}</span>
+            </div>
+          </div>
+        </div>
+
+        <aside className="stream__panel">
+          <div className="eyebrow" style={{ color: "var(--champagne)" }}>{st.panelEyebrow}</div>
+          <h3>{(st.panelTitle || "").split("\n").map((line, i) => (
+            <Fragment key={i}>{i > 0 && <br />}{line}</Fragment>
+          ))}</h3>
+          <Countdown light={false} targetDate={countdownTarget} />
+          <div className="schedule">
+            {sched.map((row, i) => (
+              <div key={i} className="schedule-row"><strong>{row.label}</strong><span className="t">{row.time}</span></div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button type="button" className="btn btn--gold" style={{ flex: 1 }} onClick={() => downloadWeddingIcs("aaron-adaeze-livestream-reminder.ics")}>{st.remindLabel} <span className="arrow">→</span></button>
+            <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={() => downloadWeddingIcs()}>{st.calendarLabel}</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// GUEST EXPERIENCE — QR invitation, seating, RSVP, welcome
+// ============================================================
+function SeatingMap() {
+  // Stylized round-table seating with one highlighted table
+  return (
+    <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="180" fill="none" />
+      {/* Dance floor */}
+      <rect x="130" y="70" width="60" height="40" rx="2" fill="none" stroke="rgba(26,23,20,0.3)" strokeDasharray="2 3" />
+      <text x="160" y="93" textAnchor="middle" fontFamily="var(--mono)" fontSize="6" letterSpacing="2" fill="rgba(26,23,20,0.5)">FLOOR</text>
+      {/* Tables */}
+      {[
+        [50, 40], [110, 30], [210, 30], [270, 40],
+        [40, 100], [280, 100],
+        [60, 150], [130, 155], [200, 155], [270, 150]
+      ].map(([x, y], i) => (
+        <g key={i}>
+          <circle cx={x} cy={y} r="14" fill={i === 6 ? "var(--champagne)" : "var(--ivory)"} stroke="rgba(26,23,20,0.4)" strokeWidth="1" />
+          <text x={x} y={y+3} textAnchor="middle" fontFamily="var(--serif)" fontSize="9" fill={i === 6 ? "var(--soft-black)" : "rgba(26,23,20,0.6)"}>T{String(i+1).padStart(2,"0")}</text>
+          {i === 6 && (
+            <>
+              <circle cx={x} cy={y} r="20" fill="none" stroke="var(--champagne)" strokeWidth="0.5" strokeDasharray="2 2" />
+              <text x={x} y={y+34} textAnchor="middle" fontFamily="var(--mono)" fontSize="5" letterSpacing="1.5" fill="var(--champagne)">YOUR TABLE</text>
+            </>
+          )}
+        </g>
+      ))}
+      {/* Head table */}
+      <rect x="120" y="20" width="80" height="8" fill="rgba(26,23,20,0.15)" />
+      <text x="160" y="15" textAnchor="middle" fontFamily="var(--mono)" fontSize="5" letterSpacing="2" fill="rgba(26,23,20,0.5)">HEAD TABLE</text>
+    </svg>
+  );
+}
+
+function tpl(str: string, map: Record<string, string>) {
+  return String(str || "").replace(/\{\{(\w+)\}\}/g, (_, k) => (map[k] != null ? String(map[k]) : ""));
+}
+
+export function GuestExperience() {
+  const { content } = useWeddingContent();
+  const inv = content.invitation || {};
+  const name = inv.guestFirstName || "Guest";
+  const last = (inv.guestLastName as string | undefined) || "";
+  const vars = { name };
+  const lede = tpl(inv.ledeTemplate, vars);
+  const quote = tpl(inv.welcomeQuoteTemplate, vars);
+  const [inviteQrPayload, setInviteQrPayload] = useState("");
+
+  useEffect(() => {
+    setInviteQrPayload(buildSiteDeepLink({ explicitUrl: inv.qrUrl as string | undefined, hash: "rsvp" }));
+  }, [inv.qrUrl]);
+
+  return (
+    <section id="invitation" className="section section--beige">
+      <div className="section__head reveal">
+        <div>
+          <div className="eyebrow">{inv.eyebrow} <span className="dot" /> {inv.eyebrowLabel}</div>
+          <h2 className="section__title">{inv.titleLine1}<em>{inv.titleEm}</em>,<br />{inv.titleLine2}</h2>
+        </div>
+        <p className="section__lede">{lede}</p>
+      </div>
+
+      <div className="guest__grid reveal-stagger">
+        <article className="guest-card">
+          <div className="guest-card__icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 14h3M14 18h3M18 21h3M21 17v4"/></svg>
+          </div>
+          <div>
+            <h4>{inv.card1Title}</h4>
+            <p>{inv.card1Body}</p>
+          </div>
+          <div className="guest-card__qr">
+            <div className="guest-card__qr-frame">
+              <QrCodeBlock value={inviteQrPayload} label="RSVP QR code" />
+            </div>
+            <div className="guest-card__qr-caption mono">
+              {String(inv.guestFirstName || "Guest").toUpperCase()}
+              {last ? ` ${String(last).toUpperCase()}` : ""}
+            </div>
+          </div>
+        </article>
+
+        <article className="guest-card">
+          <div className="guest-card__icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="6" cy="9" r="1.5"/><circle cx="18" cy="9" r="1.5"/><circle cx="9" cy="16" r="1.5"/><circle cx="15" cy="16" r="1.5"/></svg>
+          </div>
+          <div>
+            <h4>{inv.card2Title}</h4>
+            <p>{inv.card2Body}</p>
+          </div>
+          <div className="seating-preview"><SeatingMap /></div>
+        </article>
+
+        <article className="guest-card">
+          <div className="guest-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M9 11H5a2 2 0 0 0-2 2v7h18v-7a2 2 0 0 0-2-2h-4"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>
+          </div>
+          <div>
+            <h4>{inv.card3Title}</h4>
+            <p>{inv.card3Body}</p>
+          </div>
+          <div className="guest-card__rsvp">
+            <a href="#rsvp" className="btn btn--gold" style={{ width: "100%", justifyContent: "center" }}>
+              {inv.card3CtaLabel} <span className="arrow">→</span>
+            </a>
+          </div>
+        </article>
+
+        <article className="guest-card">
+          <div className="guest-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 4l8 7 8-7"/></svg>
+          </div>
+          <div>
+            <h4>{inv.card4Title}</h4>
+            <p style={{ fontFamily: "var(--script)", fontSize: 22, lineHeight: 1.2, color: "var(--charcoal)" }}>
+              {quote}
+            </p>
+          </div>
+          <div className="preview">
+            <span>{inv.card4Footer}</span>
+            <span style={{ color: "var(--champagne)" }}>♡</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// FOOTER
+// ============================================================
+export function Footer() {
+  const { content } = useWeddingContent();
+  const f = content.footer || {};
+  const social = f.social || [];
+  return (
+    <footer className="footer">
+      <div className="footer__glow" />
+      <div style={{ position: "relative", maxWidth: 1280, margin: "0 auto" }}>
+        <div className="eyebrow" style={{ textAlign: "center", color: "rgba(246,242,234,0.5)" }}>{f.eyebrow}</div>
+        <h2 className="footer__signature">{f.signatureLine1} <span className="amp">&amp;</span> {f.signatureLine2}</h2>
+        <div className="footer__hash">{f.hash}</div>
+        <div className="footer__row">
+          <div>{f.copyrightLine}</div>
+          <div className="footer__social">
+            {social.map((s, i) => (
+              <a key={i} href={s.href || "#"}>{s.label}</a>
+            ))}
+          </div>
+          <div>{(f.creditLine || "").split("\n").map((line, i) => (
+            <Fragment key={i}>{i > 0 && <br />}{line}</Fragment>
+          ))}</div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
