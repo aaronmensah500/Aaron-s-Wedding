@@ -25,7 +25,7 @@ const MIME = {
 function safeFilePath(root, urlPath) {
   const rootResolved = path.resolve(root);
   let rel = decodeURIComponent((urlPath || "/").split("?")[0]);
-  if (rel === "/" || rel === "") rel = "Aaron & Adaeze.html";
+  if (rel === "/" || rel === "") rel = "Aaron & Princess.html";
   else rel = rel.replace(/^\/+/, "");
   const resolved = path.resolve(rootResolved, rel);
   const relOut = path.relative(rootResolved, resolved);
@@ -66,5 +66,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`Serving ${__dirname}`);
-  console.log(`Open http://127.0.0.1:${PORT}/Aaron%20%26%20Adaeze.html`);
+  console.log(`Open http://127.0.0.1:${PORT}/Aaron%20%26%20Princess.html`);
 });

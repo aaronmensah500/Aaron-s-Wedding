@@ -185,7 +185,7 @@ function Livestream() {
             ))}
           </div>
           <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" className="btn btn--gold" style={{ flex: 1 }} onClick={() => window.WL.downloadWeddingIcs?.("aaron-adaeze-livestream-reminder.ics")}>{st.remindLabel} <span className="arrow">→</span></button>
+            <button type="button" className="btn btn--gold" style={{ flex: 1 }} onClick={() => window.WL.downloadWeddingIcs?.("aaron-princess-livestream-reminder.ics")}>{st.remindLabel} <span className="arrow">→</span></button>
             <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={() => window.WL.downloadWeddingIcs?.()}>{st.calendarLabel}</button>
           </div>
         </aside>

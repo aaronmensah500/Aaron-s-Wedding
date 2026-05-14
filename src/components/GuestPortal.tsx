@@ -185,7 +185,7 @@ export default function GuestPortal() {
           </h2>
         </div>
         <p className="section__lede">
-          RSVP&apos;d guests can sign in with email to upload photos and short clips for Aaron &amp; Adaeze. Only attending guests can upload.
+          RSVP&apos;d guests can sign in with email to upload photos and short clips for Aaron &amp; Princess. Only attending guests can upload.
         </p>
       </div>
 

@@ -1,4 +1,4 @@
-# Aaron & Adaeze — wedding site
+# Aaron & Princess — wedding site
 
 Single-page wedding experience: story, details, RSVP, gallery, registry, livestream, guest photo uploads, and an optional in-browser **site editor**. Built with **Astro 6**, **React 19**, and **Supabase** (RSVP storage, magic-link auth, private media).
 

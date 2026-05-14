@@ -362,7 +362,7 @@ function Details() {
 }
 
 /** Download a single-event .ics for the wedding (works with Apple, Google import, Outlook). */
-function downloadWeddingIcs(filename = "aaron-adaeze-wedding.ics") {
+function downloadWeddingIcs(filename = "aaron-princess-wedding.ics") {
   const pad = n => String(n).padStart(2, "0");
   const stamp = d => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
   const now = new Date();
@@ -370,11 +370,11 @@ function downloadWeddingIcs(filename = "aaron-adaeze-wedding.ics") {
   const start = new Date(Date.UTC(2026, 11, 12, 15, 30, 0));
   const end = new Date(Date.UTC(2026, 11, 13, 3, 0, 0));
   const fmt = d => stamp(d);
-  const uid = `aaron-adaeze-20261212@${window.location.hostname || "wedding"}`;
+  const uid = `aaron-princess-20261212@${window.location.hostname || "wedding"}`;
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Aaron & Adaeze//Wedding//EN",
+    "PRODID:-//Aaron & Princess//Wedding//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
@@ -382,8 +382,8 @@ function downloadWeddingIcs(filename = "aaron-adaeze-wedding.ics") {
     `DTSTAMP:${fmt(now)}`,
     `DTSTART:${fmt(start)}`,
     `DTEND:${fmt(end)}`,
-    "SUMMARY:Aaron & Adaeze — Wedding",
-    "DESCRIPTION:Villa Sereno · Ceremony 4:30 PM WAT\\, reception to follow.\\nhttps://aaron-adaeze.gift",
+    "SUMMARY:Aaron & Princess — Wedding",
+    "DESCRIPTION:Villa Sereno · Ceremony 4:30 PM WAT\\, reception to follow.\\nhttps://aarona.com",
     "LOCATION:Villa Sereno\\, 14 Banana Island Boulevard\\, Ikoyi\\, Lagos\\, Nigeria",
     "END:VEVENT",
     "END:VCALENDAR"

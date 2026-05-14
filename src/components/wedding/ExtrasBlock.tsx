@@ -207,7 +207,7 @@ export function Registry() {
           <div className="payment-card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div className="chip" />
-              <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> A</div>
+              <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> P</div>
             </div>
             <div>
               <div className="num">Paystack · {currency}</div>
@@ -313,7 +313,7 @@ export function Livestream() {
             ))}
           </div>
           <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" className="btn btn--gold" style={{ flex: 1 }} onClick={() => downloadWeddingIcs("aaron-adaeze-livestream-reminder.ics")}>{st.remindLabel} <span className="arrow">→</span></button>
+            <button type="button" className="btn btn--gold" style={{ flex: 1 }} onClick={() => downloadWeddingIcs("aaron-princess-livestream-reminder.ics")}>{st.remindLabel} <span className="arrow">→</span></button>
             <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={() => downloadWeddingIcs()}>{st.calendarLabel}</button>
           </div>
         </aside>
