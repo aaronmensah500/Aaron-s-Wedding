@@ -17,12 +17,11 @@ export function mapTiler256RasterUrlTemplate(mapId: string, apiKey: string): str
 
 /**
  * When MapTiler id + key are not set, Leaflet needs a raster basemap.
- * `tile.openstreetmap.org` often responds **403** to embedded production sites (tile usage policy);
- * Carto’s CDN is the usual Leaflet-friendly alternative (OSM data + Carto hosting).
- * @see https://wiki.openstreetmap.org/wiki/Blocked_applications
+ * OSM and Carto tile servers block production embedded sites via referrer policy.
+ * Esri’s ArcGIS Online tiles are free and don’t restrict by referrer.
  */
 export const LEAFLET_FALLBACK_TILE_URL =
-  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png";
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
 
 export const LEAFLET_FALLBACK_TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>';
+  ‘Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a>’;

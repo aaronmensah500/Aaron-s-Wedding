@@ -147,8 +147,7 @@ export function DetailsVenueLeaflet({
     } else {
       L.tileLayer(LEAFLET_FALLBACK_TILE_URL, {
         attribution: LEAFLET_FALLBACK_TILE_ATTRIBUTION,
-        maxZoom: 20,
-        subdomains: "abcd",
+        maxZoom: 19,
       }).addTo(map);
     }
 

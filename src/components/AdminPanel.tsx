@@ -4,6 +4,7 @@ import {
   WEDDING_CONTENT_DEFAULT,
   type WeddingContentValue,
 } from "../lib/weddingContent";
+import { AdminImageUpload } from "./AdminImageUpload";
 
 const ADMIN_SESSION_KEY = "wedding_site_admin_unlocked";
 
@@ -327,7 +328,7 @@ function ClientAdmin() {
 
             {tab === "hero" && (
               <div className="adm-stack">
-                <AdminTextField label="Hero background image URL" value={content.hero?.bgImageUrl} onChange={v => patchContent({ hero: { bgImageUrl: v } })} />
+                <AdminImageUpload label="Hero background image" value={content.hero?.bgImageUrl} onChange={v => patchContent({ hero: { bgImageUrl: v } })} />
                 <AdminTextField label="Venue line (under date)" value={content.hero?.venueLine} onChange={v => patchContent({ hero: { venueLine: v } })} />
                 <AdminTextField label="Eyebrow left" value={content.hero?.eyebrowLeft} onChange={v => patchContent({ hero: { eyebrowLeft: v } })} />
                 <AdminTextField label="Eyebrow right (before gold &amp;)" value={content.hero?.eyebrowRightBefore} onChange={v => patchContent({ hero: { eyebrowRightBefore: v } })} />
@@ -366,7 +367,7 @@ function ClientAdmin() {
                       />
                       <span>Flip layout (image right)</span>
                     </label>
-                    <AdminTextField label="Image URL (optional)" value={ch.imageUrl} onChange={v => {
+                    <AdminImageUpload label="Image (optional)" value={ch.imageUrl} onChange={v => {
                       const chapters = [...content.story.chapters];
                       chapters[i] = { ...chapters[i], imageUrl: v };
                       patchContent({ story: { chapters } });
@@ -415,7 +416,7 @@ function ClientAdmin() {
                 <AdminTextField label="Title line 2" value={content.details?.titleLine2} onChange={v => patchContent({ details: { titleLine2: v } })} />
                 <AdminTextField label="Intro" value={content.details?.lede} onChange={v => patchContent({ details: { lede: v } })} multiline rows={3} />
                 <h4 className="adm-subhd">Ceremony card</h4>
-                <AdminTextField label="Image URL" value={content.details?.ceremonyCard?.imageUrl} onChange={v => patchContent({ details: { ceremonyCard: { imageUrl: v } } })} />
+                <AdminImageUpload label="Image" value={content.details?.ceremonyCard?.imageUrl} onChange={v => patchContent({ details: { ceremonyCard: { imageUrl: v } } })} />
                 <AdminTextField label="Placeholder label" value={content.details?.ceremonyCard?.imageLabel} onChange={v => patchContent({ details: { ceremonyCard: { imageLabel: v } } })} />
                 <AdminTextField label="Eyebrow" value={content.details?.ceremonyCard?.eyebrow} onChange={v => patchContent({ details: { ceremonyCard: { eyebrow: v } } })} />
                 <AdminTextField label="Title" value={content.details?.ceremonyCard?.title} onChange={v => patchContent({ details: { ceremonyCard: { title: v } } })} />
@@ -425,7 +426,7 @@ function ClientAdmin() {
                 <AdminTextField label="Vows time" value={content.details?.ceremonyCard?.vowsTime} onChange={v => patchContent({ details: { ceremonyCard: { vowsTime: v } } })} />
                 <AdminTextField label="Attire value" value={content.details?.ceremonyCard?.attireValue} onChange={v => patchContent({ details: { ceremonyCard: { attireValue: v } } })} />
                 <h4 className="adm-subhd">Reception card</h4>
-                <AdminTextField label="Image URL" value={content.details?.receptionCard?.imageUrl} onChange={v => patchContent({ details: { receptionCard: { imageUrl: v } } })} />
+                <AdminImageUpload label="Image" value={content.details?.receptionCard?.imageUrl} onChange={v => patchContent({ details: { receptionCard: { imageUrl: v } } })} />
                 <AdminTextField label="Placeholder label" value={content.details?.receptionCard?.imageLabel} onChange={v => patchContent({ details: { receptionCard: { imageLabel: v } } })} />
                 <AdminTextField label="Eyebrow" value={content.details?.receptionCard?.eyebrow} onChange={v => patchContent({ details: { receptionCard: { eyebrow: v } } })} />
                 <AdminTextField label="Title" value={content.details?.receptionCard?.title} onChange={v => patchContent({ details: { receptionCard: { title: v } } })} />
@@ -438,11 +439,10 @@ function ClientAdmin() {
                 <AdminTextField label="Map pin: reception" value={content.details?.mapPinReception} onChange={v => patchContent({ details: { mapPinReception: v } })} />
                 <h4 className="adm-subhd">Custom map image (optional)</h4>
                 <p className="adm-hint">
-                  Design your map in Figma, Canva, Illustrator, etc., export as <strong>PNG or WebP</strong>, host it anywhere with an{" "}
-                  <strong>https</strong> link (Supabase storage, Cloudinary, your site). If this URL is set, it replaces the interactive embed below.
+                  Design your map in Figma, Canva, Illustrator, etc., export as <strong>PNG or WebP</strong>, then upload it directly below. If an image is set, it replaces the interactive embed.
                 </p>
-                <AdminTextField
-                  label="Custom map image URL (https)"
+                <AdminImageUpload
+                  label="Custom map image (PNG or WebP)"
                   value={content.details?.mapImageUrl}
                   onChange={v => patchContent({ details: { mapImageUrl: v } })}
                 />
@@ -483,7 +483,7 @@ function ClientAdmin() {
                 <h4 className="adm-subhd">Venue map pins</h4>
                 <p className="adm-hint">
                   With an allowed embed URL and the four coordinates below, guests see an interactive map: <strong>ceremony</strong> and <strong>reception</strong> pins, tap to place their pin, and <strong>Use my location</strong>. Set{" "}
-                  <code>PUBLIC_MAPTILER_API_KEY</code> in <code>.env</code> to load your MapTiler style (colors match MapTiler Cloud; the site does not recolor that map). Without the key, a Carto-hosted OSM basemap is used instead (direct OSM tile servers often return 403 on live sites). If tiles still show 403 with MapTiler, add your production and preview origins to the key’s <strong>HTTP referrer</strong> allowlist in MapTiler Cloud. Map id can come from the embed URL or the field below. Driving directions use <strong>Google Maps</strong> only (Apple Maps does not support directions in Ghana).
+                  <code>PUBLIC_MAPTILER_API_KEY</code> in <code>.env</code> to load your MapTiler style (colors match MapTiler Cloud; the site does not recolor that map). Without the key, an Esri World Street Map basemap is used instead (OSM and Carto tile servers often return 403 on live sites; Esri does not). If tiles still show 403 with MapTiler, add your production and preview origins to the key’s <strong>HTTP referrer</strong> allowlist in MapTiler Cloud. Map id can come from the embed URL or the field below. Driving directions use <strong>Google Maps</strong> only (Apple Maps does not support directions in Ghana).
                 </p>
                 <AdminTextField
                   label="MapTiler map id (if embed is not MapTiler)"
@@ -658,7 +658,7 @@ function ClientAdmin() {
                 {(content.party?.members || []).map((m, i) => (
                   <fieldset key={i} className="adm-fieldset">
                     <legend>Party member {i + 1}</legend>
-                    <AdminTextField label="Image URL" value={m.imageUrl} onChange={v => {
+                    <AdminImageUpload label="Portrait" value={m.imageUrl} onChange={v => {
                       const members = [...content.party.members];
                       members[i] = { ...members[i], imageUrl: v };
                       patchContent({ party: { members } });
@@ -703,7 +703,7 @@ function ClientAdmin() {
                       items[i] = { ...items[i], caption: v };
                       patchContent({ gallery: { items } });
                     }} />
-                    <AdminTextField label="Image URL" value={g.imageUrl} onChange={v => {
+                    <AdminImageUpload label="Photo" value={g.imageUrl} onChange={v => {
                       const items = [...content.gallery.items];
                       items[i] = { ...items[i], imageUrl: v };
                       patchContent({ gallery: { items } });
@@ -736,7 +736,7 @@ function ClientAdmin() {
                 <AdminTextField label="Title emphasis" value={content.stream?.titleEm} onChange={v => patchContent({ stream: { titleEm: v } })} />
                 <AdminTextField label="Title line 2" value={content.stream?.titleLine2} onChange={v => patchContent({ stream: { titleLine2: v } })} />
                 <AdminTextField label="Lede" value={content.stream?.lede} onChange={v => patchContent({ stream: { lede: v } })} multiline rows={3} />
-                <AdminTextField label="Player image URL" value={content.stream?.playerImageUrl} onChange={v => patchContent({ stream: { playerImageUrl: v } })} />
+                <AdminImageUpload label="Player image" value={content.stream?.playerImageUrl} onChange={v => patchContent({ stream: { playerImageUrl: v } })} />
                 <AdminTextField label="Player placeholder label" value={content.stream?.playerImageLabel} onChange={v => patchContent({ stream: { playerImageLabel: v } })} />
                 <AdminTextField label="Live badge" value={content.stream?.liveBadge} onChange={v => patchContent({ stream: { liveBadge: v } })} />
                 <AdminTextField label="Controls left" value={content.stream?.controlsLeft} onChange={v => patchContent({ stream: { controlsLeft: v } })} />

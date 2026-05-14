@@ -24,4 +24,10 @@ interface ImportMetaEnv {
   readonly PUBLIC_PAYSTACK_CURRENCY?: string;
   /** Server-only — never expose to the client. */
   readonly SUPABASE_SERVICE_ROLE_KEY?: string;
+  /**
+   * Shared secret that protects the admin image upload endpoint.
+   * PUBLIC_ so the editor can read it at runtime; keep it random and unguessable.
+   * Generate: `openssl rand -hex 24`
+   */
+  readonly PUBLIC_ADMIN_UPLOAD_TOKEN?: string;
 }
