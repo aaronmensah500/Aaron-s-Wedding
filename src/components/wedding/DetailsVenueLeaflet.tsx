@@ -138,10 +138,12 @@ export function DetailsVenueLeaflet({
     });
     mapRef.current = map;
 
+    const mapTilerAttribution =
+      '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
     if (basemap === "maptiler" && mapTilerMapId && mapTilerApiKey) {
       L.tileLayer(mapTiler256RasterUrlTemplate(mapTilerMapId, mapTilerApiKey), {
-        attribution:
-          '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attribution: mapTilerAttribution,
         maxZoom: 22,
       }).addTo(map);
     } else {

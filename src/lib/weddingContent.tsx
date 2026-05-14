@@ -174,10 +174,10 @@ const WEDDING_CONTENT_DEFAULT = {
     /** Optional: opens when guests click the custom map (e.g. full-size PNG, Google My Maps, PDF). */
     mapImageLinkUrl: "",
     /** Embed iframe `src` (Google, OSM export, uMap, Waze, Bing, MapTiler) — used when mapImageUrl is empty and not using the interactive pin map. */
-    mapEmbedUrl: "https://api.maptiler.com/maps/019e217e-3336-78fe-be8d-458487caf8f1/",
+    mapEmbedUrl: "https://api.maptiler.com/maps/streets-v4/",
     mapEmbedTitle: "Accra · East Legon & Cantonments (ceremony → reception)",
-    /** Fallback MapTiler map id if the embed URL is not MapTiler (same as Cloud map URL segment). */
-    mapTilerMapId: "019e217e-3336-78fe-be8d-458487caf8f1",
+    /** Fallback MapTiler map id if the embed URL is not MapTiler (same as Cloud map URL segment). Use a standard id like `streets-v4` with free keys; custom Cloud map UUIDs often need a paid plan. */
+    mapTilerMapId: "streets-v4",
     /** Agape House · Lagos Ave, East Legon — decimal degrees for map pins. */
     ceremonyLat: "5.642609",
     ceremonyLng: "-0.157614",
@@ -482,6 +482,29 @@ function repairLegacyAdaezeInContent(merged: WeddingSiteContent): { content: Wed
   return { content: patched, didRepair: JSON.stringify(patched) !== before };
 }
 
+/**
+ * Older shipped content used a custom MapTiler Cloud map UUID. Many account keys return
+ * HTTP 403 for that id (“Access to rendered maps not allowed”) while standard ids like `streets-v4` work.
+ */
+function repairMapTilerInaccessibleDemoMap(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const legacyId = "019e217e-3336-78fe-be8d-458487caf8f1";
+  const replacementId = "streets-v4";
+  const d = merged.details;
+  if (!d) return { content: merged, didRepair: false };
+  const emb = typeof d.mapEmbedUrl === "string" ? d.mapEmbedUrl : "";
+  const mid = typeof d.mapTilerMapId === "string" ? d.mapTilerMapId.trim() : "";
+  if (!emb.includes(legacyId) && mid !== legacyId) return { content: merged, didRepair: false };
+  const nextEmb = emb.includes(legacyId) ? emb.split(legacyId).join(replacementId) : emb;
+  const nextMid = mid === legacyId ? replacementId : mid.split(legacyId).join(replacementId);
+  return {
+    content: {
+      ...merged,
+      details: { ...d, mapEmbedUrl: nextEmb, mapTilerMapId: nextMid },
+    },
+    didRepair: true,
+  };
+}
+
 /** Empty editor PIN in localStorage made unlock impossible; restore default from shipped content. */
 function repairAdminPinIfEmpty(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
   const pin = merged.admin?.pin;
@@ -510,6 +533,9 @@ function loadInitialSiteContent(): WeddingSiteContent {
   const adminPin = repairAdminPinIfEmpty(merged);
   merged = adminPin.content;
   changed ||= adminPin.didRepair;
+  const mapTilerDemo = repairMapTilerInaccessibleDemoMap(merged);
+  merged = mapTilerDemo.content;
+  changed ||= mapTilerDemo.didRepair;
   if (changed) {
     try {
       localStorage.setItem(WEDDING_SITE_STORAGE_KEY, JSON.stringify(merged));
