@@ -24,4 +24,4 @@ export const LEAFLET_FALLBACK_TILE_URL =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
 
 export const LEAFLET_FALLBACK_TILE_ATTRIBUTION =
-  ‘Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a>’;
+  'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a>';
