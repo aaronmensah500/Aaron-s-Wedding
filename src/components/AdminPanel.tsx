@@ -483,7 +483,7 @@ function ClientAdmin() {
                 <h4 className="adm-subhd">Venue map pins</h4>
                 <p className="adm-hint">
                   With an allowed embed URL and the four coordinates below, guests see an interactive map: <strong>ceremony</strong> and <strong>reception</strong> pins, tap to place their pin, and <strong>Use my location</strong>. Set{" "}
-                  <code>PUBLIC_MAPTILER_API_KEY</code> in <code>.env</code> to load your MapTiler style (colors match MapTiler Cloud; the site does not recolor that map). Without the key, OpenStreetMap tiles are used instead. Map id can come from the embed URL or the field below. Driving directions use <strong>Google Maps</strong> only (Apple Maps does not support directions in Ghana).
+                  <code>PUBLIC_MAPTILER_API_KEY</code> in <code>.env</code> to load your MapTiler style (colors match MapTiler Cloud; the site does not recolor that map). Without the key, a Carto-hosted OSM basemap is used instead (direct OSM tile servers often return 403 on live sites). If tiles still show 403 with MapTiler, add your production and preview origins to the key’s <strong>HTTP referrer</strong> allowlist in MapTiler Cloud. Map id can come from the embed URL or the field below. Driving directions use <strong>Google Maps</strong> only (Apple Maps does not support directions in Ghana).
                 </p>
                 <AdminTextField
                   label="MapTiler map id (if embed is not MapTiler)"

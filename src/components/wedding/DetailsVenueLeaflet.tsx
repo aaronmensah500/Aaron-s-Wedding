@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import L, { type LeafletMouseEvent } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { mapTiler256RasterUrlTemplate } from "../../lib/mapCoords";
+import {
+  LEAFLET_FALLBACK_TILE_ATTRIBUTION,
+  LEAFLET_FALLBACK_TILE_URL,
+  mapTiler256RasterUrlTemplate,
+} from "../../lib/mapCoords";
 import { buildGoogleDirectionsUrl } from "../../lib/directionsLinks";
 
 function escapeHtmlText(s: string): string {
@@ -141,10 +145,10 @@ export function DetailsVenueLeaflet({
         maxZoom: 22,
       }).addTo(map);
     } else {
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-        subdomains: "abc",
+      L.tileLayer(LEAFLET_FALLBACK_TILE_URL, {
+        attribution: LEAFLET_FALLBACK_TILE_ATTRIBUTION,
+        maxZoom: 20,
+        subdomains: "abcd",
       }).addTo(map);
     }
 

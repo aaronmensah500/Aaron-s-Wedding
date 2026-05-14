@@ -324,7 +324,7 @@ export function Details() {
   const recLat = parseCoord(d.receptionLat);
   const recLng = parseCoord(d.receptionLng);
   const coordsOk = cerLat != null && cerLng != null && recLat != null && recLng != null;
-  /** Ceremony + reception pins; MapTiler style when id + PUBLIC_MAPTILER_API_KEY, else OSM tiles. */
+  /** Ceremony + reception pins; MapTiler style when id + PUBLIC_MAPTILER_API_KEY, else Carto/OSM fallback tiles. */
   const useVenueLeaflet = !hasMapImage && coordsOk && hasMapEmbed;
   const venueBasemap: "maptiler" | "osm" =
     Boolean(mapTilerId && mapTilerKey) ? "maptiler" : "osm";
