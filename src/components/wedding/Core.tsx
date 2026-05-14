@@ -87,6 +87,9 @@ export function Nav() {
   const scrolled = useScrolled(80);
   const { content } = useWeddingContent();
   const sec = content.sections || {};
+  const h = content.hero || {};
+  const brandLeft = (h.nameLine1 || "A").trim().charAt(0) || "A";
+  const brandRight = (h.nameLine2 || "P").trim().charAt(0) || "P";
   const links = [];
   if (sec.story !== false) links.push({ href: "#story", label: "Story" });
   if (sec.details !== false) links.push({ href: "#details", label: "Details" });
@@ -101,7 +104,7 @@ export function Nav() {
   return (
     <nav className={`nav ${scrolled ? "nav--solid" : ""}`}>
       <div className="nav__brand">
-        <span className="serif" style={{ fontSize: 22 }}>A<span style={{ fontFamily: "var(--script)", color: "var(--champagne)", margin: "0 4px" }}>&amp;</span>A</span>
+        <span className="serif" style={{ fontSize: 22 }}>{brandLeft}<span style={{ fontFamily: "var(--script)", color: "var(--champagne)", margin: "0 4px" }}>&amp;</span>{brandRight}</span>
         <span className="mono-id">{content.nav?.monoId || "No. 12 · 12 · 26"}</span>
       </div>
       <div className="nav__menu">

@@ -153,7 +153,9 @@ function ClientAdmin() {
   const tryUnlock = useCallback(
     (pin: string) => {
       const need = content.admin?.requirePin !== false;
-      if (!need || pin === String(content.admin?.pin || "")) {
+      const expected = String(content.admin?.pin ?? "").trim();
+      const entered = String(pin ?? "").trim();
+      if (!need || entered === expected) {
         try {
           sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
         } catch (e) { /* ignore */ }

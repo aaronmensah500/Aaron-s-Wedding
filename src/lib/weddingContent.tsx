@@ -4,7 +4,9 @@
  */
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
 
-const WEDDING_SITE_STORAGE_KEY = "wedding-site-content-v1";
+/** Current persisted key. v1 is read once and migrated so repo default name/venue updates are not stuck under old merges. */
+const WEDDING_SITE_STORAGE_KEY = "wedding-site-content-v2";
+const WEDDING_SITE_STORAGE_KEY_LEGACY_V1 = "wedding-site-content-v1";
 
 function isPlainObject(x: unknown): x is Record<string, unknown> {
   return x != null && typeof x === "object" && !Array.isArray(x);
@@ -27,13 +29,22 @@ function deepMerge(a: unknown, b: unknown): unknown {
   return out;
 }
 
-function loadStoredContent(): unknown {
+function readStoredSite(): { raw: unknown | null; migratedFromV1: boolean } {
+  if (typeof window === "undefined") return { raw: null, migratedFromV1: false };
   try {
-    const raw = localStorage.getItem(WEDDING_SITE_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const v2 = localStorage.getItem(WEDDING_SITE_STORAGE_KEY);
+    if (v2) return { raw: JSON.parse(v2), migratedFromV1: false };
+    const v1 = localStorage.getItem(WEDDING_SITE_STORAGE_KEY_LEGACY_V1);
+    if (!v1) return { raw: null, migratedFromV1: false };
+    const parsed = JSON.parse(v1);
+    try {
+      localStorage.removeItem(WEDDING_SITE_STORAGE_KEY_LEGACY_V1);
+    } catch {
+      /* ignore */
+    }
+    return { raw: parsed, migratedFromV1: true };
   } catch {
-    return null;
+    return { raw: null, migratedFromV1: false };
   }
 }
 
@@ -471,16 +482,34 @@ function repairLegacyAdaezeInContent(merged: WeddingSiteContent): { content: Wed
   return { content: patched, didRepair: JSON.stringify(patched) !== before };
 }
 
+/** Empty editor PIN in localStorage made unlock impossible; restore default from shipped content. */
+function repairAdminPinIfEmpty(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const pin = merged.admin?.pin;
+  const s = pin == null ? "" : String(pin).trim();
+  if (s !== "") return { content: merged, didRepair: false };
+  return {
+    content: {
+      ...merged,
+      admin: { ...WEDDING_CONTENT_DEFAULT.admin, ...merged.admin, pin: WEDDING_CONTENT_DEFAULT.admin.pin },
+    },
+    didRepair: true,
+  };
+}
+
 function loadInitialSiteContent(): WeddingSiteContent {
   const defaults = cloneDefaultContent();
-  let merged = deepMerge(defaults, loadStoredContent() || {}) as WeddingSiteContent;
-  let changed = false;
+  const stored = readStoredSite();
+  let merged = deepMerge(defaults, stored.raw || {}) as WeddingSiteContent;
+  let changed = stored.migratedFromV1;
   const nigeria = repairDetailsIfMistakenNigeriaSnapshot(merged);
   merged = nigeria.content;
   changed ||= nigeria.didRepair;
   const adaeze = repairLegacyAdaezeInContent(merged);
   merged = adaeze.content;
   changed ||= adaeze.didRepair;
+  const adminPin = repairAdminPinIfEmpty(merged);
+  merged = adminPin.content;
+  changed ||= adminPin.didRepair;
   if (changed) {
     try {
       localStorage.setItem(WEDDING_SITE_STORAGE_KEY, JSON.stringify(merged));
@@ -536,6 +565,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     setContent(next);
     try {
       localStorage.removeItem(WEDDING_SITE_STORAGE_KEY);
+      localStorage.removeItem(WEDDING_SITE_STORAGE_KEY_LEGACY_V1);
     } catch (e) { /* ignore */ }
     setRevision(r => r + 1);
   }, []);
@@ -556,6 +586,7 @@ function useWeddingContent() {
 
 export {
   WEDDING_SITE_STORAGE_KEY,
+  WEDDING_SITE_STORAGE_KEY_LEGACY_V1,
   WEDDING_CONTENT_DEFAULT,
   WeddingContentProvider,
   useWeddingContent,

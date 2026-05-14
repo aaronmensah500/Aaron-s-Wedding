@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { WeddingContentProvider, useWeddingContent } from "../lib/weddingContent";
 import { ClientAdmin } from "./AdminPanel";
 import {
@@ -14,9 +14,14 @@ import { RSVP, BridalParty, Gallery } from "./wedding/RsvpBlock";
 import { Registry, Livestream, GuestExperience, Footer } from "./wedding/ExtrasBlock";
 import GuestPortal from "./GuestPortal";
 
-/** Floating editor + tweaks: on in dev, or when explicitly enabled for this deploy (never set on the public URL). */
-const showSiteEditor =
-  import.meta.env.DEV || import.meta.env.PUBLIC_SHOW_SITE_EDITOR === "true";
+function readAdminQuery(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return new URLSearchParams(window.location.search).get("admin") === "1";
+  } catch {
+    return false;
+  }
+}
 
 const TWEAK_DEFAULTS = {
   palette: "ivory",
@@ -90,6 +95,7 @@ function applyTweaks(t: TweakState) {
 }
 
 function App() {
+  const [adminUrlUnlock, setAdminUrlUnlock] = useState(readAdminQuery);
   const [tweaksRaw, setTweak] = useTweaks({ ...TWEAK_DEFAULTS });
   const tweaks = tweaksRaw as TweakState;
   const { content, revision } = useWeddingContent();
@@ -97,6 +103,12 @@ function App() {
     const d = new Date(content.site?.weddingDateIso);
     return Number.isNaN(d.getTime()) ? null : d;
   }, [content.site?.weddingDateIso]);
+
+  useEffect(() => {
+    const sync = () => setAdminUrlUnlock(readAdminQuery());
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
 
   useReveal(revision);
 
@@ -106,10 +118,14 @@ function App() {
 
   const sec = content.sections || {};
 
+  /** Dev always; production when env is set or when couple opens `?admin=1` (PIN still required). */
+  const showSiteEditor =
+    import.meta.env.DEV || import.meta.env.PUBLIC_SHOW_SITE_EDITOR === "true" || adminUrlUnlock;
+
   return (
     <div className="app">
-      <Nav />
-      {sec.hero !== false && <Hero countdownTarget={countdownTarget} />}
+      <Nav key={revision} />
+      {sec.hero !== false && <Hero key={revision} countdownTarget={countdownTarget} />}
       {sec.story !== false && <LoveStory />}
       {sec.details !== false && <Details />}
       {sec.travel !== false && <TravelLogistics />}
@@ -118,8 +134,8 @@ function App() {
       {sec.gallery !== false && <Gallery />}
       {sec.registry !== false && <Registry />}
       {sec.stream !== false && <Livestream />}
-      {sec.invitation !== false && <GuestExperience />}
-      {sec.footer !== false && <Footer />}
+      {sec.invitation !== false && <GuestExperience key={revision} />}
+      {sec.footer !== false && <Footer key={revision} />}
 
       <GuestPortal />
 

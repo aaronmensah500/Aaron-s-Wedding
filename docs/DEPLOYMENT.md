@@ -10,7 +10,7 @@ Copy `.env.example` to `.env` and set:
 | `PUBLIC_SUPABASE_ANON_KEY` | Yes if using Supabase | Client + server (magic-link route) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes for APIs | **Server only** — never expose to browser |
 | `PUBLIC_SITE_URL` | Recommended | Magic-link redirect when `Origin` header is missing |
-| `PUBLIC_SHOW_SITE_EDITOR` | Optional | Set to `true` only on a **private** staging URL to load the editor + tweaks in production builds. |
+| `PUBLIC_SHOW_SITE_EDITOR` | Optional | Set to `true` on a **staging** build so the editor appears without `?admin=1`. On production you can omit it and open **`https://your-site/?admin=1`** instead (PIN still required). |
 | `PUBLIC_HIDE_SITE_EDITOR_LAUNCHER` | Optional | With `PUBLIC_SHOW_SITE_EDITOR=true`, set to `true` to **hide the floating “Edit site” button** on the public site. Couple opens **`?admin=1`** and/or **Alt+Shift+E** (see README). |
 
 ## Supabase checklist
