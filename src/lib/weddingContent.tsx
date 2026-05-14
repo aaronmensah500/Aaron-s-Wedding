@@ -444,18 +444,51 @@ function repairDetailsIfMistakenNigeriaSnapshot(merged: WeddingSiteContent): { c
   return { content: { ...merged, details }, didRepair: true };
 }
 
+/** Old saves still have the previous bride name; deep-replace so merged localStorage picks up “Princess”. */
+function replaceLegacyAdaezeBranding(value: unknown): unknown {
+  if (typeof value === "string") {
+    if (!/Adaeze|aaron-adaeze|AaronTakesAdaeze|\bA & A\b/i.test(value)) return value;
+    return value
+      .replace(/\bAdaeze\b/gi, "Princess")
+      .replace(/AaronTakesAdaeze/g, "AaronTakesPrincess")
+      .replace(/aaron-adaeze/gi, "aaron-princess")
+      .replace(/\bA & A\b/g, "A & P");
+  }
+  if (Array.isArray(value)) return value.map(replaceLegacyAdaezeBranding);
+  if (isPlainObject(value)) {
+    const o: Record<string, unknown> = {};
+    for (const k of Object.keys(value as Record<string, unknown>)) {
+      o[k] = replaceLegacyAdaezeBranding((value as Record<string, unknown>)[k]);
+    }
+    return o;
+  }
+  return value;
+}
+
+function repairLegacyAdaezeInContent(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const before = JSON.stringify(merged);
+  const patched = replaceLegacyAdaezeBranding(merged) as WeddingSiteContent;
+  return { content: patched, didRepair: JSON.stringify(patched) !== before };
+}
+
 function loadInitialSiteContent(): WeddingSiteContent {
   const defaults = cloneDefaultContent();
-  const merged = deepMerge(defaults, loadStoredContent() || {}) as WeddingSiteContent;
-  const { content, didRepair } = repairDetailsIfMistakenNigeriaSnapshot(merged);
-  if (didRepair) {
+  let merged = deepMerge(defaults, loadStoredContent() || {}) as WeddingSiteContent;
+  let changed = false;
+  const nigeria = repairDetailsIfMistakenNigeriaSnapshot(merged);
+  merged = nigeria.content;
+  changed ||= nigeria.didRepair;
+  const adaeze = repairLegacyAdaezeInContent(merged);
+  merged = adaeze.content;
+  changed ||= adaeze.didRepair;
+  if (changed) {
     try {
-      localStorage.setItem(WEDDING_SITE_STORAGE_KEY, JSON.stringify(content));
+      localStorage.setItem(WEDDING_SITE_STORAGE_KEY, JSON.stringify(merged));
     } catch {
       /* ignore quota / private mode */
     }
   }
-  return content;
+  return merged;
 }
 
 type WeddingContentValue = {
