@@ -132,7 +132,7 @@ function App({ page }: AppProps) {
   return (
     <div className="app" data-page={page}>
       <Nav currentPage={page} />
-      {page === "home" && sec.hero !== false && <Hero key={revision} countdownTarget={countdownTarget} />}
+      {page === "home" && sec.hero !== false && <Hero countdownTarget={countdownTarget} />}
       {page === "home" && sec.story !== false && <HomeStoryTeaser />}
       {page === "home" && sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
       {page === "home" && sec.registry !== false && <Registry compact />}

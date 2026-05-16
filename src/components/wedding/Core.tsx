@@ -7,16 +7,8 @@ import { useSiteEditorOptional } from "../../lib/siteEditor";
 import { IMAGE_UPLOAD_ACCEPT, useAdminImageUpload } from "../../lib/useAdminImageUpload";
 import { downloadWeddingIcs } from "../../lib/calendar";
 import { heroDateDisplay, navMonoId } from "../../lib/weddingDateFormats";
-import { isSafeHttpsAssetUrl } from "../../lib/mapAssetUrl";
-import {
-  extractMapTilerMapIdFromEmbedSrc,
-  isAllowedMapEmbedUrl,
-  isMapTilerCloudMapUrl,
-  normalizeMapEmbedUrl,
-} from "../../lib/mapEmbed";
-import { parseCoord } from "../../lib/mapCoords";
 import { buildNavLinks, SITE_PATHS, type SitePageId } from "../../lib/sitePages";
-import { DetailsVenueLeaflet } from "./DetailsVenueLeaflet";
+import { VenueDirectionsMap } from "./VenueDirectionsMap";
 
 // ============================================================
 // Hooks & helpers
@@ -244,14 +236,20 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
     : undefined;
 
   useEffect(() => {
+    const el = bgRef.current;
+    if (el) el.style.transform = "";
     const onScroll = () => {
       if (!bgRef.current) return;
       const y = window.scrollY;
       bgRef.current.style.transform = `translate3d(0, ${y * 0.35}px, 0) scale(${1 + y * 0.0002})`;
     };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (bgRef.current) bgRef.current.style.transform = "";
+    };
+  }, [h.bgImageUrl]);
 
   return (
     <section className="hero">
@@ -436,26 +434,6 @@ export function Details() {
     patchContent({ details: { itinerary: updated } });
   };
   const itinerary = d.itinerary || [];
-  const mapImg = (d.mapImageUrl || "").trim();
-  const hasMapImage = isSafeHttpsAssetUrl(mapImg);
-  const mapLink = (d.mapImageLinkUrl || "").trim();
-  const hasMapLink = isSafeHttpsAssetUrl(mapLink);
-  const mapSrc = normalizeMapEmbedUrl(d.mapEmbedUrl);
-  const hasMapEmbed = isAllowedMapEmbedUrl(mapSrc);
-  const mapTilerIdFromEmbed = extractMapTilerMapIdFromEmbedSrc(mapSrc);
-  const mapTilerIdFromContent = (d.mapTilerMapId || "").trim();
-  const mapTilerId = mapTilerIdFromEmbed || mapTilerIdFromContent || null;
-  const mapTilerKey = (import.meta.env.PUBLIC_MAPTILER_API_KEY as string | undefined)?.trim();
-  const cerLat = parseCoord(d.ceremonyLat);
-  const cerLng = parseCoord(d.ceremonyLng);
-  const recLat = parseCoord(d.receptionLat);
-  const recLng = parseCoord(d.receptionLng);
-  const coordsOk = cerLat != null && cerLng != null && recLat != null && recLng != null;
-  /** Ceremony + reception pins; MapTiler style when id + PUBLIC_MAPTILER_API_KEY, else Esri fallback tiles. */
-  const useVenueLeaflet = !hasMapImage && coordsOk && hasMapEmbed;
-  const venueBasemap: "maptiler" | "osm" =
-    Boolean(mapTilerId && mapTilerKey) ? "maptiler" : "osm";
-  const mapTilerTrueColor = isMapTilerCloudMapUrl(mapSrc);
   return (
     <section id="details" className="section section--beige">
       <SectionHead
@@ -541,101 +519,7 @@ export function Details() {
         </article>
       </div>
 
-      {hasMapImage ? (
-        <div className="details__map-frame details__map-frame--custom">
-          <div className="details__map-frame__inner">
-            {hasMapLink ? (
-              <a
-                href={mapLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="details__map-frame__img-link"
-                aria-label={d.mapImageAlt || "Open full map"}
-              >
-                <img src={mapImg} alt={d.mapImageAlt || ""} loading="lazy" decoding="async" />
-              </a>
-            ) : (
-              <img
-                className="details__map-frame__img"
-                src={mapImg}
-                alt={d.mapImageAlt || ""}
-                loading="lazy"
-                decoding="async"
-              />
-            )}
-          </div>
-          <div className="details__map-frame__wash" aria-hidden="true" />
-        </div>
-      ) : useVenueLeaflet ? (
-        <div
-          className={`details__map-frame details__map-frame--leaflet${
-            venueBasemap === "osm" ? " details__map-frame--venue-osm" : ""
-          }${venueBasemap === "maptiler" ? " details__map-frame--true-color" : ""}`}
-        >
-          <div className="details__map-frame__inner">
-            <DetailsVenueLeaflet
-              basemap={venueBasemap}
-              mapTilerMapId={mapTilerId ?? ""}
-              mapTilerApiKey={mapTilerKey ?? ""}
-              ceremonyLat={cerLat!}
-              ceremonyLng={cerLng!}
-              receptionLat={recLat!}
-              receptionLng={recLng!}
-              ceremonyTooltip={d.mapPinCeremony || "Ceremony"}
-              receptionTooltip={d.mapPinReception || "Reception"}
-              guestTooltip={d.mapYouTooltip || "You"}
-              useLocationLabel={d.mapUseLocationLabel || "Use my location"}
-              locatingLabel={d.mapLocatingLabel || "Locating…"}
-              clickHintLabel={d.mapClickHintLabel || "Click the map to drop your pin"}
-              clearPinLabel={d.mapClearPinLabel || "Remove my pin"}
-              deniedBody={d.mapGeoDeniedBody}
-              unavailableBody={d.mapGeoErrorBody}
-              ariaLabel={d.mapEmbedTitle || "Venue map"}
-              toCeremonyGoogleLabel={d.mapDirCeremonyGoogleLabel || "Google · to ceremony"}
-              toReceptionGoogleLabel={d.mapDirReceptionGoogleLabel || "Google · to reception"}
-            />
-          </div>
-          <div className="details__map-frame__wash" aria-hidden="true" />
-        </div>
-      ) : hasMapEmbed ? (
-        <div
-          className={`details__map-frame${mapTilerTrueColor ? " details__map-frame--true-color" : ""}`}
-        >
-          <div className="details__map-frame__inner">
-            <iframe
-              title={d.mapEmbedTitle || "Venue map"}
-              src={mapSrc}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
-          </div>
-          <div className="details__map-frame__wash" aria-hidden="true" />
-        </div>
-      ) : (
-        <div className="details__map" aria-label="Venue map">
-          <svg viewBox="0 0 1200 360" preserveAspectRatio="none">
-            <defs>
-              <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
-                <path d="M 36 0 L 0 0 0 36" fill="none" stroke="rgba(26,23,20,0.06)" strokeWidth="1" />
-              </pattern>
-            </defs>
-            <rect width="1200" height="360" fill="url(#grid)" />
-            <path d="M 0 220 Q 240 180 480 200 T 920 230 T 1200 200" stroke="rgba(26,23,20,0.18)" strokeWidth="1.5" fill="none" />
-            <path d="M 0 80 Q 300 110 600 90 T 1200 120" stroke="rgba(26,23,20,0.12)" strokeWidth="1" fill="none" strokeDasharray="3 6" />
-            <path d="M 380 360 Q 420 240 520 180 T 720 100" stroke="rgba(201,169,97,0.6)" strokeWidth="1.5" fill="none" strokeDasharray="2 4" />
-            <circle cx="160" cy="220" r="3" fill="rgba(26,23,20,0.3)" />
-            <circle cx="380" cy="190" r="3" fill="rgba(26,23,20,0.3)" />
-            <circle cx="900" cy="240" r="3" fill="rgba(26,23,20,0.3)" />
-          </svg>
-          <div className="pin" style={{ left: "32%", top: "55%" }}>
-            <EditableText value={d.mapPinCeremony} onChange={v => patchContent({ details: { mapPinCeremony: v } })} />
-          </div>
-          <div className="pin pin--gold" style={{ left: "62%", top: "38%" }}>
-            <EditableText value={d.mapPinReception} onChange={v => patchContent({ details: { mapPinReception: v } })} />
-          </div>
-        </div>
-      )}
+      <VenueDirectionsMap />
 
       <div className="itinerary reveal">
         <div className="itinerary__head">

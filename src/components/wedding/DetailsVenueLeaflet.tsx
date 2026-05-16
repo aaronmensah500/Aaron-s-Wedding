@@ -47,6 +47,31 @@ const guestIcon = L.divIcon({
   iconAnchor: [13, 13],
 });
 
+function LocationIcon() {
+  return (
+    <svg className="details-venue-leaflet__icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12 2.25a.85.85 0 0 0-.77.48L4.28 18.9a.85.85 0 0 0 1.08 1.08l7.64-2.3 7.64 2.3a.85.85 0 0 0 1.08-1.08L12.77 2.73A.85.85 0 0 0 12 2.25Z"
+      />
+    </svg>
+  );
+}
+
+function ClearPinIcon() {
+  return (
+    <svg className="details-venue-leaflet__icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        d="M6 6l12 12M18 6L6 18"
+      />
+    </svg>
+  );
+}
+
 export type DetailsVenueLeafletProps = {
   /** MapTiler raster style when key + id are set; otherwise standard OSM tiles (pins always show). */
   basemap: "maptiler" | "osm";
@@ -68,6 +93,7 @@ export type DetailsVenueLeafletProps = {
   ariaLabel: string;
   toCeremonyGoogleLabel: string;
   toReceptionGoogleLabel: string;
+  directionsMenuLabel: string;
 };
 
 export function DetailsVenueLeaflet({
@@ -90,6 +116,7 @@ export function DetailsVenueLeaflet({
   ariaLabel,
   toCeremonyGoogleLabel,
   toReceptionGoogleLabel,
+  directionsMenuLabel,
 }: DetailsVenueLeafletProps) {
   const mapElRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -224,7 +251,7 @@ export function DetailsVenueLeaflet({
         role="application"
         aria-label={ariaLabel}
       />
-      <div className="details-venue-leaflet__chrome">
+      <div className="details-venue-leaflet__chrome details-venue-leaflet__chrome--responsive">
         {geoStatus === "denied" && deniedBody ? (
           <p className="details-venue-leaflet__msg">{deniedBody}</p>
         ) : geoStatus === "error" && unavailableBody ? (
@@ -235,24 +262,29 @@ export function DetailsVenueLeaflet({
         <div className="details-venue-leaflet__btn-row">
           <button
             type="button"
-            className="btn btn--ghost details-venue-leaflet__btn"
+            className="btn btn--ghost details-venue-leaflet__btn details-venue-leaflet__btn--loc"
             onClick={requestLocation}
             disabled={geoStatus === "requesting"}
             aria-busy={geoStatus === "requesting"}
+            aria-label={geoStatus === "requesting" ? locatingLabel : useLocationLabel}
           >
-            {geoStatus === "requesting" ? locatingLabel : useLocationLabel}
+            <LocationIcon />
           </button>
-          {guestPin && (
+          {guestPin ? (
             <button
               type="button"
-              className="btn btn--ghost details-venue-leaflet__btn details-venue-leaflet__btn--clear"
+              className="btn btn--ghost details-venue-leaflet__btn details-venue-leaflet__btn--icon details-venue-leaflet__btn--clear"
               onClick={clearPin}
               aria-label={clearPinLabel}
             >
-              {clearPinLabel}
+              <ClearPinIcon />
             </button>
-          )}
-          <div className="details-venue-leaflet__directions" role="group" aria-label="Google Maps directions">
+          ) : null}
+          <div
+            className="details-venue-leaflet__directions details-venue-leaflet__directions--wide"
+            role="group"
+            aria-label="Google Maps directions"
+          >
             <div className="details-venue-leaflet__dir-block">
               <div className="details-venue-leaflet__dir-label">{ceremonyTooltip}</div>
               <a className="btn btn--ghost" href={gCer} target="_blank" rel="noopener noreferrer">
@@ -266,6 +298,23 @@ export function DetailsVenueLeaflet({
               </a>
             </div>
           </div>
+          <details className="details-venue-leaflet__directions details-venue-leaflet__directions--compact">
+            <summary className="btn btn--ghost details-venue-leaflet__directions-summary">
+              {directionsMenuLabel}
+            </summary>
+            <div
+              className="details-venue-leaflet__directions-panel"
+              role="group"
+              aria-label="Google Maps directions"
+            >
+              <a className="btn btn--ghost" href={gCer} target="_blank" rel="noopener noreferrer">
+                {toCeremonyGoogleLabel}
+              </a>
+              <a className="btn btn--ghost" href={gRec} target="_blank" rel="noopener noreferrer">
+                {toReceptionGoogleLabel}
+              </a>
+            </div>
+          </details>
         </div>
       </div>
     </div>

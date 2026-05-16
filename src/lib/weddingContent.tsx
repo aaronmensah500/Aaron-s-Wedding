@@ -235,6 +235,7 @@ const WEDDING_CONTENT_DEFAULT = {
     mapLocatingLabel: "Locating…",
     mapDirCeremonyGoogleLabel: "Google · to ceremony",
     mapDirReceptionGoogleLabel: "Google · to reception",
+    mapDirectionsMenuLabel: "Directions",
     mapYouTooltip: "You",
     mapClickHintLabel: "Click the map to drop your pin",
     mapClearPinLabel: "Remove my pin",
@@ -259,13 +260,12 @@ const WEDDING_CONTENT_DEFAULT = {
     titleLine1: "From ",
     titleEm: "runway",
     titleLine2: "to dance floor",
-    lede: "Planning your route to Accra — airport, a suggested place to stay, then Agape House for the ceremony and El-Wak Sports Stadium for the reception. Map links open in your preferred app.",
+    lede: "Planning your route to Accra — airport, a suggested place to stay, then Agape House for the ceremony and El-Wak Sports Stadium for the reception. Use Google Maps links below and the venue map for directions.",
     shuttleNote: "Guest transport will run between Agape House (East Legon) and El-Wak Sports Stadium (Cantonments) from 6:00 PM. Ask any attendant in a gold ribbon.",
     visaNote: "Entry rules depend on your passport. Check Ghana Immigration guidance (e-visa / visa on arrival) well before you travel.",
     disclaimer: "These notes are for planning only. Times, traffic, and policies change — please verify everything for your situation.",
     lastUpdated: "May 2026",
     googleMapsBtnLabel: "Google Maps",
-    appleMapsBtnLabel: "Apple Maps",
     airport: {
       stepLabel: "Step 1 · Arrive",
       title: "Kotoka International Airport (ACC)",
@@ -275,7 +275,6 @@ const WEDDING_CONTENT_DEFAULT = {
       addressLine1: "Airport Rd",
       addressLine2: "Accra · Ghana",
       googleUrl: "https://www.google.com/maps/search/?api=1&query=Kotoka+International+Airport+Accra",
-      appleUrl: "https://maps.apple.com/?q=Kotoka+International+Airport+Accra",
       tips: "Cedis (GHS) for tips; Bolt and Uber pick up from Arrivals; buy a local SIM from official booths if you need data."
     },
     hotel: {
@@ -287,7 +286,6 @@ const WEDDING_CONTENT_DEFAULT = {
       addressLine1: "Emporium Building, 13th Lane",
       addressLine2: "Airport Residential Area, Accra · Ghana",
       googleUrl: "https://www.google.com/maps/search/?api=1&query=Movenpick+Ambassador+Hotel+Accra",
-      appleUrl: "https://maps.apple.com/?q=Movenpick+Ambassador+Hotel+Accra",
       tips: "Ask the concierge for car service to Agape House and El-Wak; Accra traffic peaks 7–9 AM and 5–7 PM."
     },
     ceremony: {
@@ -299,7 +297,6 @@ const WEDDING_CONTENT_DEFAULT = {
       addressLine1: "Lagos Avenue",
       addressLine2: "East Legon, Accra · Ghana",
       googleUrl: "https://www.google.com/maps/search/?api=1&query=Agape+House+East+Legon+Accra",
-      appleUrl: "https://maps.apple.com/?q=Agape+House+Lagos+Avenue+East+Legon",
       tips: "Parking attendants will direct you; arrive early to find your seat before the processional."
     },
     reception: {
@@ -311,7 +308,6 @@ const WEDDING_CONTENT_DEFAULT = {
       addressLine1: "Giffard Road",
       addressLine2: "Cantonments, Accra · Ghana",
       googleUrl: "https://www.google.com/maps/search/?api=1&query=El+Wak+Sports+Stadium+Accra",
-      appleUrl: "https://maps.apple.com/?q=El+Wak+Stadium+Giffard+Road+Accra",
       tips: "Follow signage to the reception entrance; guest transport from Agape House will be available from 6:00 PM."
     }
   },

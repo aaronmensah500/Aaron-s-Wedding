@@ -1,6 +1,7 @@
 import { useWeddingContent } from "../../lib/weddingContent";
 import { EditableText } from "../editable/EditableText";
 import { SectionHead } from "../editable/SectionTitle";
+import { VenueDirectionsMap } from "./VenueDirectionsMap";
 
 type TravelLeg = {
   stepLabel?: string;
@@ -11,23 +12,19 @@ type TravelLeg = {
   addressLine1?: string;
   addressLine2?: string;
   googleUrl?: string;
-  appleUrl?: string;
   tips?: string;
 };
 
 function TravelLegCard({
   leg,
   googleLabel,
-  appleLabel,
   onPatch,
 }: {
   leg: TravelLeg;
   googleLabel: string;
-  appleLabel: string;
   onPatch: (partial: Record<string, string>) => void;
 }) {
   const g = (leg.googleUrl || "").trim();
-  const a = (leg.appleUrl || "").trim();
   return (
     <article className="travel__leg reveal">
       <div className="travel__leg-step">
@@ -58,18 +55,11 @@ function TravelLegCard({
           <EditableText value={leg.addressLine2} onChange={v => onPatch({ addressLine2: v })} />
         </p>
       ) : null}
-      {(g || a) ? (
+      {g ? (
         <div className="travel__leg-links">
-          {g ? (
-            <a className="btn btn--ghost" href={g} target="_blank" rel="noopener noreferrer">
-              {googleLabel} <span className="arrow">→</span>
-            </a>
-          ) : null}
-          {a ? (
-            <a className="btn btn--ghost" href={a} target="_blank" rel="noopener noreferrer">
-              {appleLabel} <span className="arrow">→</span>
-            </a>
-          ) : null}
+          <a className="btn btn--ghost" href={g} target="_blank" rel="noopener noreferrer">
+            {googleLabel} <span className="arrow">→</span>
+          </a>
         </div>
       ) : null}
       {leg.tips ? (
@@ -87,7 +77,6 @@ export function TravelLogistics() {
   if (!t) return null;
 
   const gBtn = t.googleMapsBtnLabel || "Google Maps";
-  const aBtn = t.appleMapsBtnLabel || "Apple Maps";
 
   const patchLeg = (key: "airport" | "hotel" | "ceremony" | "reception", partial: Record<string, string>) => {
     const current = (t[key] as Record<string, unknown>) || {};
@@ -122,11 +111,13 @@ export function TravelLogistics() {
       ) : null}
 
       <div className="travel__grid reveal-stagger">
-        <TravelLegCard leg={t.airport || {}} googleLabel={gBtn} appleLabel={aBtn} onPatch={p => patchLeg("airport", p)} />
-        <TravelLegCard leg={t.hotel || {}} googleLabel={gBtn} appleLabel={aBtn} onPatch={p => patchLeg("hotel", p)} />
-        <TravelLegCard leg={t.ceremony || {}} googleLabel={gBtn} appleLabel={aBtn} onPatch={p => patchLeg("ceremony", p)} />
-        <TravelLegCard leg={t.reception || {}} googleLabel={gBtn} appleLabel={aBtn} onPatch={p => patchLeg("reception", p)} />
+        <TravelLegCard leg={t.airport || {}} googleLabel={gBtn} onPatch={p => patchLeg("airport", p)} />
+        <TravelLegCard leg={t.hotel || {}} googleLabel={gBtn} onPatch={p => patchLeg("hotel", p)} />
+        <TravelLegCard leg={t.ceremony || {}} googleLabel={gBtn} onPatch={p => patchLeg("ceremony", p)} />
+        <TravelLegCard leg={t.reception || {}} googleLabel={gBtn} onPatch={p => patchLeg("reception", p)} />
       </div>
+
+      <VenueDirectionsMap className="travel__map reveal" />
 
       <footer className="travel__foot reveal">
         {t.disclaimer ? (
