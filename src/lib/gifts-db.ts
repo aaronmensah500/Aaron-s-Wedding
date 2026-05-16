@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PaystackVerifyData } from "./paystack-server";
 import { giftEmailFromTransaction, giftNameFromTransaction } from "./paystack-server";
-import { WEDDING_SLUG } from "./guest-access";
+import { WEDDING_SLUG } from "./weddingConstants";
 
 export type GiftUpsertInput = {
   email: string;

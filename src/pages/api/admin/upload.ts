@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { authorizeAdminBearer } from "../../../lib/adminPinServer";
+import { authorizeAdminRequest } from "../../../lib/adminAuthServer";
 import { getServiceSupabase } from "../../../lib/supabase/service";
 import { jsonError, jsonOk } from "../../../lib/api/json";
 
@@ -11,7 +11,7 @@ const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/g
 
 export const POST: APIRoute = async ({ request }) => {
   const auth = (request.headers.get("Authorization") ?? "").trim();
-  if (!(await authorizeAdminBearer(auth))) {
+  if (!(await authorizeAdminRequest(auth))) {
     return jsonError("UNAUTHORIZED", 401, "Unlock the editor with your PIN, then try again.");
   }
 

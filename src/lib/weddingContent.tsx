@@ -12,6 +12,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { getAdminAuthHeader } from "./adminAuthClient";
 import { fetchPublishedSiteContent, publishSiteContent } from "./siteContentApi";
 import { contentPatchesFromWeddingDate } from "./weddingDateFormats";
 import { stripToPlainText } from "./plainText";
@@ -441,18 +442,23 @@ const WEDDING_CONTENT_DEFAULT = {
     eyebrowLabel: "The album",
     titleLine1: "A small ",
     titleEm: "archive",
-    lede: "Photographs from the years that led here, and the engagement shoot by film. Click any frame to view full size — arrow keys to wander through the rest.",
+    lede: "Photographs from the years that led here, and the engagement shoot by film. Open an album to browse — arrow keys in the lightbox.",
+    albums: [
+      { id: "general", title: "Highlights", description: "Favourite moments", coverImageUrl: "" },
+      { id: "ceremony", title: "Ceremony", description: "The wedding day", coverImageUrl: "" },
+      { id: "reception", title: "Reception", description: "Evening celebration", coverImageUrl: "" },
+    ],
     items: [
-      { ratio: "3/4", caption: "Engagement · Lagos", imageUrl: "" },
-      { ratio: "4/5", caption: "The proposal", imageUrl: "" },
-      { ratio: "1/1", caption: "Family · Nairobi", imageUrl: "" },
-      { ratio: "4/3", caption: "First trip · Lisbon", imageUrl: "" },
-      { ratio: "3/4", caption: "Sunday at home", imageUrl: "" },
-      { ratio: "1/1", caption: "Grandmother's earrings", imageUrl: "" },
-      { ratio: "4/5", caption: "Bridal portrait", imageUrl: "" },
-      { ratio: "3/4", caption: "On the lagoon", imageUrl: "" },
-      { ratio: "4/3", caption: "After the rains", imageUrl: "" }
-    ]
+      { albumId: "general", ratio: "3/4", caption: "Engagement · Lagos", imageUrl: "" },
+      { albumId: "general", ratio: "4/5", caption: "The proposal", imageUrl: "" },
+      { albumId: "general", ratio: "1/1", caption: "Family · Nairobi", imageUrl: "" },
+      { albumId: "ceremony", ratio: "4/3", caption: "First trip · Lisbon", imageUrl: "" },
+      { albumId: "ceremony", ratio: "3/4", caption: "Sunday at home", imageUrl: "" },
+      { albumId: "reception", ratio: "1/1", caption: "Grandmother's earrings", imageUrl: "" },
+      { albumId: "reception", ratio: "4/5", caption: "Bridal portrait", imageUrl: "" },
+      { albumId: "reception", ratio: "3/4", caption: "On the lagoon", imageUrl: "" },
+      { albumId: "general", ratio: "4/3", caption: "After the rains", imageUrl: "" },
+    ],
   },
   registry: {
     eyebrow: "No. 07",
@@ -710,6 +716,36 @@ function repairWeddingDateDerived(merged: WeddingSiteContent): { content: Weddin
   };
 }
 
+function repairGalleryAlbums(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const gz = merged.gallery || {};
+  const defaultAlbums = WEDDING_CONTENT_DEFAULT.gallery.albums || [];
+  const albums = Array.isArray(gz.albums) && gz.albums.length > 0 ? gz.albums : defaultAlbums;
+  const albumIds = new Set(
+    albums.map((a: { id?: string }) => String(a?.id ?? "").trim()).filter(Boolean)
+  );
+  const fallbackAlbumId = albumIds.has("general") ? "general" : String(albums[0]?.id ?? "general");
+  const items = (Array.isArray(gz.items) ? gz.items : []).map(
+    (item: { albumId?: string; ratio?: string; caption?: string; imageUrl?: string }) => ({
+      ...item,
+      albumId: albumIds.has(String(item?.albumId ?? "").trim())
+        ? String(item.albumId).trim()
+        : fallbackAlbumId,
+    })
+  );
+  const needsAlbums = !Array.isArray(gz.albums) || gz.albums.length === 0;
+  const needsAlbumId = (Array.isArray(gz.items) ? gz.items : []).some(
+    (item: { albumId?: string }) => !String(item?.albumId ?? "").trim()
+  );
+  if (!needsAlbums && !needsAlbumId) return { content: merged, didRepair: false };
+  return {
+    content: {
+      ...merged,
+      gallery: { ...gz, albums, items },
+    } as WeddingSiteContent,
+    didRepair: true,
+  };
+}
+
 function repairAdminPinIfEmpty(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
   const pin = merged.admin?.pin;
   const s = pin == null ? "" : String(pin).trim();
@@ -729,6 +765,7 @@ function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSite
   const steps = [
     repairDetailsIfMistakenNigeriaSnapshot,
     repairLegacyAdaezeInContent,
+    repairGalleryAlbums,
     repairAdminPinIfEmpty,
     repairWeddingDateDerived,
     repairRsvpPosterPlainText,
@@ -796,8 +833,8 @@ type WeddingContentValue = {
   contentHydrated: boolean;
   publishStatus: SitePublishStatus;
   publishError: string;
-  /** Publish current copy for all visitors (requires editor PIN). */
-  publishForEveryone: (pin: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+  /** Publish current copy for all visitors (editor session or PIN). */
+  publishForEveryone: () => Promise<{ ok: true } | { ok: false; message: string }>;
 };
 
 const WeddingContentContext = createContext<WeddingContentValue | null>(null);
@@ -812,15 +849,22 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
   contentRef.current = content;
   const initialContentRef = useRef(content);
 
-  const publishForEveryone = useCallback(async (pin: string) => {
+  const publishForEveryone = useCallback(async () => {
     if (!import.meta.env.PUBLIC_SUPABASE_URL?.trim()) {
       setPublishStatus("local-only");
       setPublishError("");
       return { ok: false as const, message: "Supabase is not configured." };
     }
+    const authorization = await getAdminAuthHeader();
+    if (!authorization) {
+      return {
+        ok: false as const,
+        message: "Sign in as an editor or unlock with your PIN before publishing.",
+      };
+    }
     setPublishStatus("saving");
     setPublishError("");
-    const result = await publishSiteContent(contentRef.current, pin);
+    const result = await publishSiteContent(contentRef.current, authorization);
     if (result.ok) {
       setPublishStatus("saved");
       setPublishError("");

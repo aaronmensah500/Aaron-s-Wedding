@@ -310,21 +310,27 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
               <div className="eyebrow">{r.successEyebrow}</div>
               <h3>{data.attendance === "yes" ? r.successYesTitle : r.successNoTitle}</h3>
               <p>
-                {data.attendance === "yes"
-                  ? `A confirmation has been sent to ${data.email || "your inbox"}. Your seat for ${data.guests} ${data.guests === 1 ? "person" : "people"} is held at ${r.confirmVenue || "Agape House & El-Wak Stadium"}.`
-                  : r.successNoBody}
+                {import.meta.env.PUBLIC_SUPABASE_URL
+                  ? "Thanks — the hosts will confirm your RSVP. Once approved, sign in on "
+                  : data.attendance === "yes"
+                    ? `Your seat for ${data.guests} ${data.guests === 1 ? "person" : "people"} is noted for ${r.confirmVenue || "Agape House & El-Wak Stadium"}. `
+                    : r.successNoBody}
                 {import.meta.env.PUBLIC_SUPABASE_URL ? (
                   <>
-                    {" "}
-                    Sign in anytime on{" "}
                     <a href={`${SITE_PATHS.guest}#my-guest`} style={{ color: "var(--champagne)" }}>
                       My guest
                     </a>
+                    {" "}
+                    with the same email — we&apos;ll send a 6-digit code
                     {data.attendance === "yes"
                       ? " to see your reply and share photos."
                       : " to see your reply."}
                   </>
-                ) : null}
+                ) : data.attendance === "yes" ? (
+                  `Your seat for ${data.guests} ${data.guests === 1 ? "person" : "people"} is held at ${r.confirmVenue || "Agape House & El-Wak Stadium"}.`
+                ) : (
+                  r.successNoBody
+                )}
               </p>
               <button type="button" className="btn btn--ghost" onClick={resetForm}>{r.anotherGuest}</button>
             </div>
@@ -423,84 +429,6 @@ export function BridalParty() {
   );
 }
 
-// ============================================================
-// GALLERY w/ lightbox
-// ============================================================
-export function Gallery() {
-  const { content, patchContent } = useWeddingContent();
-  const editor = useSiteEditorOptional();
-  const gz = content.gallery || {};
-  const items = gz.items || [];
-  const n = Math.max(1, items.length);
-  const [open, setOpen] = useState(-1);
-  const close = useCallback(() => setOpen(-1), []);
-  const next = useCallback(() => setOpen(o => (o + 1) % n), [n]);
-  const prev = useCallback(() => setOpen(o => (o - 1 + n) % n), [n]);
+export { Gallery } from "./GallerySection";
 
-  const patchItem = (i: number, partial: Record<string, string>) => {
-    const updated = [...items];
-    updated[i] = { ...updated[i], ...partial };
-    patchContent({ gallery: { items: updated } });
-  };
-
-  useEffect(() => {
-    if (open < 0) return;
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") close();
-      if (e.key === "ArrowRight") next();
-      if (e.key === "ArrowLeft") prev();
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [open, close, next, prev]);
-
-  return (
-    <section id="gallery" className="section section--beige">
-      <SectionHead
-        eyebrow={gz.eyebrow}
-        eyebrowLabel={gz.eyebrowLabel}
-        titleLine1={gz.titleLine1}
-        titleEm={gz.titleEm}
-        lede={gz.lede}
-        onPatch={p => patchContent({ gallery: p })}
-      />
-
-      <div className="gallery reveal">
-        {items.map((g, i) => (
-          <figure
-            key={i}
-            className="gallery__item"
-            onClick={editor?.isEditing ? undefined : () => setOpen(i)}
-          >
-            <EditableImage
-              label={g.caption}
-              src={g.imageUrl}
-              variant={i % 3 === 1 ? "blush" : i % 3 === 2 ? "dark" : "default"}
-              style={{ aspectRatio: g.ratio }}
-              onChange={url => patchItem(i, { imageUrl: url })}
-            />
-            <figcaption className="gallery__cap">
-              <EditableText value={g.caption} onChange={v => patchItem(i, { caption: v })} />
-            </figcaption>
-          </figure>
-        ))}
-      </div>
-
-      {open >= 0 && items[open] && (
-        <div className="lightbox" onClick={close}>
-          <div className="lightbox__img" onClick={e => e.stopPropagation()}>
-            <Ph label={items[open].caption} src={items[open].imageUrl} variant={open % 3 === 1 ? "blush" : open % 3 === 2 ? "dark" : "default"} style={{ height: "100%" }} />
-          </div>
-          <button type="button" className="lightbox__close" onClick={e => { e.stopPropagation(); close(); }} aria-label="Close">
-            <svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.4" /></svg>
-          </button>
-          <button type="button" className="lightbox__nav lightbox__nav--prev" onClick={e => { e.stopPropagation(); prev(); }} aria-label="Previous">‹</button>
-          <button type="button" className="lightbox__nav lightbox__nav--next" onClick={e => { e.stopPropagation(); next(); }} aria-label="Next">›</button>
-          <div className="lightbox__meta" onClick={e => e.stopPropagation()}>{String(open + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")} · {items[open].caption}</div>
-        </div>
-      )}
-    </section>
-  );
-}
 

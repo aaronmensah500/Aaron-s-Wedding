@@ -1,20 +1,11 @@
 import { useCallback, useRef, useState } from "react";
-import { readUnlockedAdminPin, useSiteEditorOptional } from "./siteEditor";
-
-const legacyUploadToken = import.meta.env.PUBLIC_ADMIN_UPLOAD_TOKEN?.trim();
-
-export function canAdminUpload(): boolean {
-  if (legacyUploadToken) return true;
-  return readUnlockedAdminPin() !== null;
-}
+import { getAdminAuthHeader } from "./adminAuthClient";
+import { useSiteEditorOptional } from "./siteEditor";
 
 export const IMAGE_UPLOAD_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif,image/*";
 
-function uploadAuthHeader(): string | null {
-  if (legacyUploadToken) return `Bearer ${legacyUploadToken}`;
-  const pin = readUnlockedAdminPin();
-  if (pin === null) return null;
-  return `Bearer ${pin}`;
+export function canAdminUpload(): boolean {
+  return true;
 }
 
 export function useAdminImageUpload(onChange: (url: string) => void) {
@@ -22,13 +13,17 @@ export function useAdminImageUpload(onChange: (url: string) => void) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const canUpload = Boolean(legacyUploadToken) || Boolean(editor?.hasSession);
+  const canUpload = Boolean(editor?.hasSession);
 
   const handleFile = useCallback(
     async (file: File) => {
-      const authorization = uploadAuthHeader();
+      const authorization = await getAdminAuthHeader();
       if (!authorization) {
-        setErr("Unlock the editor with your PIN to upload photos.");
+        setErr(
+          editor?.emailAuthEnabled
+            ? "Sign in with your editor email to upload photos."
+            : "Unlock the editor to upload photos."
+        );
         return;
       }
       setErr("");
@@ -53,7 +48,7 @@ export function useAdminImageUpload(onChange: (url: string) => void) {
         setBusy(false);
       }
     },
-    [onChange]
+    [onChange, editor?.emailAuthEnabled]
   );
 
   const pickFile = useCallback(() => {

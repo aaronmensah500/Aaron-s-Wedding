@@ -507,7 +507,7 @@ export function GuestExperience() {
         )}
       </div>
 
-      <div className="guest__grid reveal-stagger">
+      <div className="guest__grid reveal-stagger in">
         <article className="guest-card">
           <div className="guest-card__icon">
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 14h3M14 18h3M18 21h3M21 17v4"/></svg>

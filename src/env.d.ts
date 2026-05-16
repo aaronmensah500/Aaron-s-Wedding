@@ -12,7 +12,9 @@ interface ImportMetaEnv {
   readonly PUBLIC_SUPABASE_ANON_KEY?: string;
   /** MapTiler API key for interactive Details map tiles (client-safe). */
   readonly PUBLIC_MAPTILER_API_KEY?: string;
-  /** Site origin for magic-link redirects, QR payloads, and calendar links — must be `PUBLIC_` so the client can read it. */
+  /** Comma-separated editor emails (server-only). */
+  readonly ADMIN_EDITOR_EMAILS?: string;
+  /** Site origin for QR payloads and calendar links — must be `PUBLIC_` so the client can read it. */
   readonly PUBLIC_SITE_URL?: string;
   /** Optional server-only fallback (same value as PUBLIC_SITE_URL) for API routes if the public var is unset. */
   readonly DOMAIN?: string;

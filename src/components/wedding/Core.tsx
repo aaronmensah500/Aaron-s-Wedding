@@ -29,7 +29,7 @@ function useCountdown(target: Date) {
   return { days, hours, minutes, seconds };
 }
 
-export function useReveal(contentRevision: number) {
+export function useReveal(contentRevision: number, page?: string) {
   useEffect(() => {
     const io = new IntersectionObserver(
       entries => {
@@ -42,9 +42,31 @@ export function useReveal(contentRevision: number) {
       },
       { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
     );
-    document.querySelectorAll(".reveal, .reveal-stagger").forEach(el => io.observe(el));
-    return () => io.disconnect();
-  }, [contentRevision]);
+
+    const observeAll = () => {
+      document.querySelectorAll(".reveal:not(.in), .reveal-stagger:not(.in)").forEach(el => {
+        io.observe(el);
+        // Above-the-fold blocks (e.g. lazy-loaded /guest) may never intersect.
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.92 && rect.bottom > 0) {
+          el.classList.add("in");
+          io.unobserve(el);
+        }
+      });
+    };
+
+    observeAll();
+    const raf = requestAnimationFrame(observeAll);
+    const t1 = window.setTimeout(observeAll, 80);
+    const t2 = window.setTimeout(observeAll, 400);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      io.disconnect();
+    };
+  }, [contentRevision, page]);
 }
 
 function useScrolled(threshold = 80) {
@@ -267,20 +289,56 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
               style={{ display: "none" }}
               onChange={bgUpload.onInputChange}
             />
-            <button
-              type="button"
-              className="hero__bg-upload"
-              disabled={bgUpload.busy || !bgUpload.canUpload}
-              aria-label={bgUpload.canUpload ? "Upload hero background" : "Hero upload unavailable"}
-              onClick={e => {
-                e.stopPropagation();
-                if (bgUpload.canUpload) bgUpload.pickFile();
-              }}
-            />
             {bgUpload.busy ? <span className="hero__bg-upload-busy" aria-hidden /> : null}
           </>
         ) : null}
       </div>
+
+      {editor?.isEditing ? (
+        <div className="hero__bg-editor-actions" role="toolbar" aria-label="Hero background">
+          <span className="hero__bg-editor-label">Hero background</span>
+          {h.bgImageUrl && String(h.bgImageUrl).trim() ? (
+            <>
+              <button
+                type="button"
+                className="hero__bg-replace"
+                disabled={bgUpload.busy || !bgUpload.canUpload}
+                aria-label="Replace hero background"
+                onClick={e => {
+                  e.stopPropagation();
+                  if (bgUpload.canUpload) bgUpload.pickFile();
+                }}
+              >
+                Replace
+              </button>
+              <button
+                type="button"
+                className="hero__bg-remove"
+                onClick={e => {
+                  e.stopPropagation();
+                  patchContent({ hero: { bgImageUrl: "" } });
+                }}
+              >
+                Remove
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="hero__bg-upload-btn"
+              disabled={bgUpload.busy || !bgUpload.canUpload}
+              aria-label="Upload hero background"
+              onClick={e => {
+                e.stopPropagation();
+                if (bgUpload.canUpload) bgUpload.pickFile();
+              }}
+            >
+              {bgUpload.busy ? "Uploading…" : "Upload photo"}
+            </button>
+          )}
+          {bgUpload.err ? <span className="hero__bg-editor-err">{bgUpload.err}</span> : null}
+        </div>
+      ) : null}
 
       <div className="hero__eyebrow-row">
         <EditableText value={h.eyebrowLeft} onChange={v => patchContent({ hero: { eyebrowLeft: v } })} />

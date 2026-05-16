@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useWeddingContent, WEDDING_CONTENT_DEFAULT, validateSiteContentImport } from "../lib/weddingContent";
 import { useSiteEditor } from "../lib/siteEditor";
+import {
+  PAGE_EDITOR_LABELS,
+  PAGE_SECTION_KEYS,
+  SECTION_TOGGLE_LABELS,
+  SITE_PATHS,
+  type SitePageId,
+} from "../lib/sitePages";
 import { AdminImageUpload } from "./AdminImageUpload";
 import { AdminPinSaveModal } from "./AdminPinSaveModal";
 import { AdminWeddingDateSettings } from "./AdminWeddingDateSettings";
@@ -33,44 +40,63 @@ function AdminTextField({
   );
 }
 
-function AdminSectionToggles() {
+function AdminSectionToggles({ currentPage }: { currentPage: SitePageId }) {
   const { content, patchContent } = useWeddingContent();
-  const keys: [keyof typeof content.sections, string][] = [
-    ["hero", "Hero"],
-    ["story", "Love story"],
-    ["details", "Details"],
-    ["travel", "Travel"],
-    ["rsvp", "RSVP"],
-    ["party", "Bridal party"],
-    ["gallery", "Gallery"],
-    ["registry", "Registry"],
-    ["stream", "Livestream"],
-    ["invitation", "Guest experience"],
-    ["footer", "Footer"],
-  ];
+  const pageLabel = PAGE_EDITOR_LABELS[currentPage];
+  const pagePath = SITE_PATHS[currentPage];
+  const onPage = PAGE_SECTION_KEYS[currentPage];
+  const onPageSet = new Set(onPage);
+  const otherKeys = (
+    Object.keys(SECTION_TOGGLE_LABELS) as (keyof typeof SECTION_TOGGLE_LABELS)[]
+  ).filter(k => !onPageSet.has(k));
+
+  const renderToggle = (k: keyof typeof content.sections) => (
+    <label key={k} className="adm-check">
+      <input
+        type="checkbox"
+        checked={content.sections[k] !== false}
+        onChange={e => patchContent({ sections: { [k]: e.target.checked } })}
+      />
+      <span>{SECTION_TOGGLE_LABELS[k]}</span>
+    </label>
+  );
+
   return (
     <div className="adm-stack">
-      <p className="adm-hint">Uncheck to hide a section from the site and navigation.</p>
-      {keys.map(([k, label]) => (
-        <label key={k} className="adm-check">
-          <input
-            type="checkbox"
-            checked={content.sections[k] !== false}
-            onChange={e => patchContent({ sections: { [k]: e.target.checked } })}
-          />
-          <span>{label}</span>
-        </label>
-      ))}
+      <p className="adm-hint">
+        On <strong>{pageLabel}</strong> (<code className="adm-code">{pagePath}</code>). Uncheck to hide a section from
+        this page and navigation.
+      </p>
+      {onPage.map(k => renderToggle(k))}
+      {otherKeys.length > 0 ? (
+        <fieldset className="adm-fieldset adm-fieldset--spaced">
+          <legend>Other pages</legend>
+          <p className="adm-hint">These sections do not appear on the page you are editing.</p>
+          {otherKeys.map(k => renderToggle(k))}
+        </fieldset>
+      ) : null}
     </div>
   );
+}
+
+function slugifyAlbumId(title: string): string {
+  const base = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return base || "album";
 }
 
 function AdminArraysPanel() {
   const { content, patchContent } = useWeddingContent();
   const storyDefault = WEDDING_CONTENT_DEFAULT.story.chapters[0];
   const galleryDefault = WEDDING_CONTENT_DEFAULT.gallery.items[0];
+  const albumDefault = WEDDING_CONTENT_DEFAULT.gallery.albums[0];
   const partyDefault = WEDDING_CONTENT_DEFAULT.party.members[0];
   const itineraryDefault = WEDDING_CONTENT_DEFAULT.details.itinerary[0];
+  const albums = content.gallery?.albums || [];
+  const galleryItems = content.gallery?.items || [];
 
   return (
     <div className="adm-stack">
@@ -104,6 +130,74 @@ function AdminArraysPanel() {
         </div>
       </fieldset>
       <fieldset className="adm-fieldset">
+        <legend>Gallery albums</legend>
+        <div className="editable-image__actions">
+          <button
+            type="button"
+            className="adm-btn adm-btn--sm"
+            onClick={() => {
+              const title = `Album ${albums.length + 1}`;
+              let id = slugifyAlbumId(title);
+              const ids = new Set(albums.map((a: { id?: string }) => a.id));
+              let n = 2;
+              while (ids.has(id)) {
+                id = `${slugifyAlbumId(title)}-${n}`;
+                n += 1;
+              }
+              patchContent({
+                gallery: {
+                  albums: [...albums, { ...albumDefault, id, title, description: "" }],
+                },
+              });
+            }}
+          >
+            Add album
+          </button>
+          <button
+            type="button"
+            className="adm-btn adm-btn--sm adm-btn--ghost"
+            disabled={albums.length <= 1}
+            onClick={() => {
+              const nextAlbums = [...albums];
+              const removed = nextAlbums.pop();
+              const fallbackId = nextAlbums[0]?.id || "general";
+              const items = galleryItems.map((item: { albumId?: string }) => ({
+                ...item,
+                albumId: item.albumId === removed?.id ? fallbackId : item.albumId,
+              }));
+              patchContent({ gallery: { albums: nextAlbums, items } });
+            }}
+          >
+            Remove last album
+          </button>
+        </div>
+        {albums.map((album: { id: string; title: string; description?: string }, ai: number) => (
+          <div key={album.id} className="adm-stack adm-stack--tight">
+            <AdminTextField
+              label={`Album ${ai + 1} title`}
+              value={album.title}
+              onChange={v => {
+                const next = [...albums];
+                next[ai] = { ...next[ai], title: v };
+                patchContent({ gallery: { albums: next } });
+              }}
+            />
+            <AdminTextField
+              label="Description"
+              value={album.description}
+              onChange={v => {
+                const next = [...albums];
+                next[ai] = { ...next[ai], description: v };
+                patchContent({ gallery: { albums: next } });
+              }}
+            />
+            <p className="adm-hint">
+              ID: <code className="adm-code">{album.id}</code>
+            </p>
+          </div>
+        ))}
+      </fieldset>
+      <fieldset className="adm-fieldset">
         <legend>Gallery photos</legend>
         <div className="editable-image__actions">
           <button
@@ -111,7 +205,15 @@ function AdminArraysPanel() {
             className="adm-btn adm-btn--sm"
             onClick={() =>
               patchContent({
-                gallery: { items: [...(content.gallery?.items || []), { ...galleryDefault }] },
+                gallery: {
+                  items: [
+                    ...galleryItems,
+                    {
+                      ...galleryDefault,
+                      albumId: albums[0]?.id || galleryDefault.albumId || "general",
+                    },
+                  ],
+                },
               })
             }
           >
@@ -120,9 +222,9 @@ function AdminArraysPanel() {
           <button
             type="button"
             className="adm-btn adm-btn--sm adm-btn--ghost"
-            disabled={(content.gallery?.items?.length || 0) <= 1}
+            disabled={galleryItems.length <= 1}
             onClick={() => {
-              const items = [...(content.gallery?.items || [])];
+              const items = [...galleryItems];
               items.pop();
               patchContent({ gallery: { items } });
             }}
@@ -304,21 +406,22 @@ function AdminPublishBanner({
 export function AdminToolbar() {
   const { content, patchContent, replaceContent, resetToDefaults, publishStatus, publishError, publishForEveryone } =
     useWeddingContent();
-  const { lock } = useSiteEditor();
+  const { lock, currentPage, emailAuthEnabled } = useSiteEditor();
+  const pageLabel = PAGE_EDITOR_LABELS[currentPage];
+  const pagePath = SITE_PATHS[currentPage];
   const [sheet, setSheet] = useState<SheetId>(null);
   const [importText, setImportText] = useState("");
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [saveModalError, setSaveModalError] = useState("");
 
   const canPublish = Boolean(import.meta.env.PUBLIC_SUPABASE_URL?.trim());
-  const requirePin = content.admin?.requirePin !== false;
+  const requirePin = !emailAuthEnabled && content.admin?.requirePin !== false;
 
-  const handleSavePinSubmit = async (pin: string) => {
+  const handleSaveSubmit = async () => {
     setSaveModalError("");
-    const result = await publishForEveryone(pin);
+    const result = await publishForEveryone();
     if (!result.ok) {
-      const msg = result.message.toLowerCase().includes("pin") ? result.message : "Incorrect PIN or publish failed.";
-      setSaveModalError(msg);
+      setSaveModalError(result.message);
       return;
     }
     setSaveModalOpen(false);
@@ -361,6 +464,16 @@ export function AdminToolbar() {
   return (
     <>
       <div className="adm-toolbar" role="toolbar" aria-label="Site editor">
+        <p className="adm-toolbar__page" aria-live="polite">
+          <strong>Editing: {pageLabel}</strong>
+          <span className="adm-toolbar__page-hint">
+            {" "}
+            · tap text on this page · sheets affect the whole site ·{" "}
+            <a className="adm-toolbar__page-link" href={pagePath}>
+              {pagePath}
+            </a>
+          </span>
+        </p>
         <AdminPublishBanner
           publishStatus={publishStatus}
           publishError={publishError}
@@ -401,7 +514,7 @@ export function AdminToolbar() {
             setSaveModalError("");
           }
         }}
-        onSubmit={pin => void handleSavePinSubmit(pin)}
+        onSubmit={() => void handleSaveSubmit()}
       />
 
       {sheet ? (
@@ -413,7 +526,7 @@ export function AdminToolbar() {
                 Close
               </button>
             </div>
-            {sheet === "sections" ? <AdminSectionToggles /> : null}
+            {sheet === "sections" ? <AdminSectionToggles currentPage={currentPage} /> : null}
             {sheet === "arrays" ? <AdminArraysPanel /> : null}
             {sheet === "site" ? (
               <div className="adm-stack">
@@ -426,7 +539,18 @@ export function AdminToolbar() {
                   />
                   <span>Require PIN</span>
                 </label>
-                <AdminTextField label="Editor PIN" value={content.admin?.pin} onChange={v => patchContent({ admin: { pin: v } })} />
+                {!emailAuthEnabled ? (
+                  <AdminTextField
+                    label="Editor PIN"
+                    value={content.admin?.pin}
+                    onChange={v => patchContent({ admin: { pin: v } })}
+                  />
+                ) : (
+                  <p className="adm-hint">
+                    Editor access uses allowlisted emails (<code className="adm-code">ADMIN_EDITOR_EMAILS</code> in
+                    server env). No shared PIN.
+                  </p>
+                )}
               </div>
             ) : null}
             {sheet === "advanced" ? <AdminAdvancedPanel /> : null}

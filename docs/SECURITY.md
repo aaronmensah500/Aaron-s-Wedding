@@ -10,8 +10,9 @@ Guests are semi-trusted: anyone can POST `/api/rsvp` until rate limits kick in. 
 |------|------------|
 | **RSVP + magic link** | In-memory **rate limits** per client IP (`src/lib/rate-limit.ts`): RSVP ~24 / 15 min, magic link ~8 / 15 min (tune as needed). |
 | **API JSON** | Consistent shape `{ error: { code, message } }` plus `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` on API responses (`src/lib/api/json.ts`). |
-| **Magic link** | Only emails present in `rsvps` receive OTP; `shouldCreateUser: false`. |
-| **Guest media** | RLS + Storage policies in migration; uploads under `{userId}/…`. |
+| **Email OTP** | `POST /api/auth/send-otp` after guest-list check; Supabase emails a 6-digit code; client `verifyOtp`. Configure Email OTP in Supabase dashboard. |
+| **RSVP approval** | New RSVPs are `pending` until couple approves on `/guest` (host APIs use service role + JWT). |
+| **Guest media** | RLS requires `attendance = yes` and `status = approved`; uploads under `{userId}/…`. |
 | **XSS (poster HTML)** | `dangerouslySetInnerHTML` paths use **`sanitizePosterHtml`** (`dompurify`) in `RsvpBlock`. |
 | **Structured errors** | Magic-link failures return generic `otp_send_failed` message (no raw Supabase text to clients). |
 

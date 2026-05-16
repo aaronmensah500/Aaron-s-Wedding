@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
 import { isSafeHttpsAssetUrl } from "../../lib/mapAssetUrl";
 import {
@@ -8,7 +9,10 @@ import {
 } from "../../lib/mapEmbed";
 import { parseCoord } from "../../lib/mapCoords";
 import { EditableText } from "../editable/EditableText";
-import { DetailsVenueLeaflet } from "./DetailsVenueLeaflet";
+
+const DetailsVenueLeaflet = lazy(() =>
+  import("./DetailsVenueLeaflet").then((m) => ({ default: m.DetailsVenueLeaflet }))
+);
 
 type VenueDirectionsMapProps = {
   className?: string;
@@ -78,28 +82,30 @@ export function VenueDirectionsMap({ className = "" }: VenueDirectionsMapProps) 
         }${venueBasemap === "maptiler" ? " details__map-frame--true-color" : ""}`}
       >
         <div className="details__map-frame__inner">
-          <DetailsVenueLeaflet
-            basemap={venueBasemap}
-            mapTilerMapId={mapTilerId ?? ""}
-            mapTilerApiKey={mapTilerKey ?? ""}
-            ceremonyLat={cerLat!}
-            ceremonyLng={cerLng!}
-            receptionLat={recLat!}
-            receptionLng={recLng!}
-            ceremonyTooltip={d.mapPinCeremony || "Ceremony"}
-            receptionTooltip={d.mapPinReception || "Reception"}
-            guestTooltip={d.mapYouTooltip || "You"}
-            useLocationLabel={d.mapUseLocationLabel || "Use my location"}
-            locatingLabel={d.mapLocatingLabel || "Locating…"}
-            clickHintLabel={d.mapClickHintLabel || "Click the map to drop your pin"}
-            clearPinLabel={d.mapClearPinLabel || "Remove my pin"}
-            deniedBody={d.mapGeoDeniedBody}
-            unavailableBody={d.mapGeoErrorBody}
-            ariaLabel={d.mapEmbedTitle || "Venue map"}
-            toCeremonyGoogleLabel={d.mapDirCeremonyGoogleLabel || "Google · to ceremony"}
-            toReceptionGoogleLabel={d.mapDirReceptionGoogleLabel || "Google · to reception"}
-            directionsMenuLabel={d.mapDirectionsMenuLabel || "Directions"}
-          />
+          <Suspense>
+            <DetailsVenueLeaflet
+              basemap={venueBasemap}
+              mapTilerMapId={mapTilerId ?? ""}
+              mapTilerApiKey={mapTilerKey ?? ""}
+              ceremonyLat={cerLat!}
+              ceremonyLng={cerLng!}
+              receptionLat={recLat!}
+              receptionLng={recLng!}
+              ceremonyTooltip={d.mapPinCeremony || "Ceremony"}
+              receptionTooltip={d.mapPinReception || "Reception"}
+              guestTooltip={d.mapYouTooltip || "You"}
+              useLocationLabel={d.mapUseLocationLabel || "Use my location"}
+              locatingLabel={d.mapLocatingLabel || "Locating…"}
+              clickHintLabel={d.mapClickHintLabel || "Click the map to drop your pin"}
+              clearPinLabel={d.mapClearPinLabel || "Remove my pin"}
+              deniedBody={d.mapGeoDeniedBody}
+              unavailableBody={d.mapGeoErrorBody}
+              ariaLabel={d.mapEmbedTitle || "Venue map"}
+              toCeremonyGoogleLabel={d.mapDirCeremonyGoogleLabel || "Google · to ceremony"}
+              toReceptionGoogleLabel={d.mapDirReceptionGoogleLabel || "Google · to reception"}
+              directionsMenuLabel={d.mapDirectionsMenuLabel || "Directions"}
+            />
+          </Suspense>
         </div>
         <div className="details__map-frame__wash" aria-hidden="true" />
       </div>

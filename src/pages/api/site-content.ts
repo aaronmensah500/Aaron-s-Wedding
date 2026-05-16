@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { authorizeAdminBearer } from "../../lib/adminPinServer";
+import { authorizeAdminRequest } from "../../lib/adminAuthServer";
 import { jsonError, jsonOk } from "../../lib/api/json";
 import { getServiceSupabase } from "../../lib/supabase/service";
 import { WEDDING_SLUG } from "../../lib/weddingSlug";
@@ -51,7 +51,7 @@ export const GET: APIRoute = async () => {
 
 export const PUT: APIRoute = async ({ request }) => {
   const auth = (request.headers.get("Authorization") ?? "").trim();
-  if (!(await authorizeAdminBearer(auth))) {
+  if (!(await authorizeAdminRequest(auth))) {
     return jsonError("UNAUTHORIZED", 401, "Invalid PIN.");
   }
 

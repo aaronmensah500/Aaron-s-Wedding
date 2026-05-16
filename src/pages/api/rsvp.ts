@@ -5,6 +5,8 @@ import { rateLimitConsume } from "../../lib/rate-limit";
 import { getClientIp } from "../../lib/api/request-meta";
 import { serverLog } from "../../lib/server-log";
 import { apiErrorMessage, type ApiErrorCode } from "../../i18n/en";
+import { WEDDING_SLUG } from "../../lib/guest-access";
+import { fetchExistingRsvpStatus, upsertRsvpRow } from "../../lib/rsvp-db";
 
 export const prerender = false;
 
@@ -73,8 +75,21 @@ export const POST: APIRoute = async ({ request }) => {
   const song = String(body.song || "").slice(0, 500);
   const note = String(body.note || "").slice(0, 4000);
 
-  const row = {
-    wedding_slug: "primary",
+  let existingStatus: "pending" | "approved" | "rejected" | null = null;
+  try {
+    existingStatus = await fetchExistingRsvpStatus(admin, WEDDING_SLUG, email);
+  } catch (selErr) {
+    serverLog("error", "rsvp_select_failed", {
+      ip,
+      message: selErr instanceof Error ? selErr.message : String(selErr),
+    });
+    return jsonError("save_failed", 500, apiErrorMessage("save_failed"));
+  }
+
+  const status = existingStatus === "approved" ? "approved" : "pending";
+
+  const saved = await upsertRsvpRow(admin, {
+    wedding_slug: WEDDING_SLUG,
     email,
     full_name,
     attendance,
@@ -83,28 +98,25 @@ export const POST: APIRoute = async ({ request }) => {
     diet,
     song,
     note,
+    status,
     updated_at: new Date().toISOString(),
-  };
+  });
 
-  const { error: upErr } = await admin.from("rsvps").upsert(row, { onConflict: "wedding_slug,email" });
-  if (upErr) {
-    serverLog("error", "rsvp_upsert_failed", { ip, code: upErr.code, message: upErr.message });
+  if (!saved.ok) {
+    serverLog("error", "rsvp_upsert_failed", {
+      ip,
+      code: saved.error.code,
+      message: saved.error.message,
+    });
     return jsonError("save_failed", 500, apiErrorMessage("save_failed"));
   }
 
-  const { error: authErr } = await admin.auth.admin.createUser({
-    email,
-    email_confirm: false,
-    user_metadata: { full_name },
-  });
-
-  if (authErr) {
-    const msg = authErr.message?.toLowerCase() || "";
-    if (!msg.includes("already") && !msg.includes("registered")) {
-      serverLog("error", "rsvp_auth_provision_failed", { ip, email, message: authErr.message });
-      return jsonError("auth_provision_failed", 500, apiErrorMessage("auth_provision_failed"));
-    }
+  if (!saved.hasStatusColumn) {
+    serverLog("warn", "rsvp_status_column_missing", {
+      ip,
+      hint: "Run supabase/migrations/20260517120000_rsvp_approval_status.sql for guest approval workflow",
+    });
   }
 
-  return jsonOk();
+  return jsonOk({ status: saved.hasStatusColumn ? status : "approved" });
 };

@@ -6,7 +6,7 @@ type AdminPinSaveModalProps = {
   publishing: boolean;
   error: string;
   onClose: () => void;
-  onSubmit: (pin: string) => void;
+  onSubmit: (pin: string) => void | Promise<void>;
 };
 
 export function AdminPinSaveModal({

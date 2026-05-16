@@ -21,14 +21,14 @@ export async function fetchPublishedSiteContent(): Promise<PublishedSiteContent 
 
 export async function publishSiteContent(
   content: unknown,
-  pin: string
+  authorization: string
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   try {
     const res = await fetch("/api/site-content", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${String(pin ?? "").trim()}`,
+        Authorization: authorization.startsWith("Bearer ") ? authorization : `Bearer ${authorization}`,
       },
       body: JSON.stringify({ content }),
     });

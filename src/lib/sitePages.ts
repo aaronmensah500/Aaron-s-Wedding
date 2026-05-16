@@ -28,6 +28,57 @@ export const PAGE_TITLES: Record<SitePageId, string> = {
   guest: "My guest · Aaron & Princess",
 };
 
+export type SectionToggleKey =
+  | "hero"
+  | "story"
+  | "details"
+  | "travel"
+  | "rsvp"
+  | "party"
+  | "gallery"
+  | "registry"
+  | "stream"
+  | "invitation"
+  | "footer";
+
+/** Section toggles (`content.sections`) that appear on each public page. */
+export const PAGE_SECTION_KEYS: Record<SitePageId, SectionToggleKey[]> = {
+  home: ["hero", "story", "rsvp", "registry", "footer"],
+  story: ["story", "footer"],
+  wedding: ["details", "party", "footer"],
+  travel: ["travel", "footer"],
+  rsvp: ["rsvp", "footer"],
+  gallery: ["gallery", "footer"],
+  registry: ["registry", "stream", "footer"],
+  guest: ["invitation", "footer"],
+};
+
+export const SECTION_TOGGLE_LABELS: Record<SectionToggleKey, string> = {
+  hero: "Hero",
+  story: "Love story",
+  details: "Details",
+  travel: "Travel",
+  rsvp: "RSVP",
+  party: "Bridal party",
+  gallery: "Gallery",
+  registry: "Registry",
+  stream: "Livestream",
+  invitation: "Guest experience (invitation cards)",
+  footer: "Footer",
+};
+
+/** Short labels for the admin toolbar (“Editing: …”). */
+export const PAGE_EDITOR_LABELS: Record<SitePageId, string> = {
+  home: "Home",
+  story: "Story",
+  wedding: "Wedding",
+  travel: "Travel",
+  rsvp: "RSVP",
+  gallery: "Gallery",
+  registry: "Gifts",
+  guest: "My guest",
+};
+
 export type NavLink = { href: string; label: string; page: SitePageId };
 
 /** Editor sidebar tabs — `page` links to the public route for preview. */

@@ -23,3 +23,11 @@ Environment: **jsdom** (see `vitest.config.ts`).
 - Visual regression.
 
 Recommended follow-up: one Playwright spec that loads `/`, steps through RSVP with mocked `fetch`, or a staging deploy smoke test.
+
+## Guest approval flow (manual)
+
+1. Submit RSVP with a new email → row is `pending` in Supabase; magic link returns “waiting for approval”.
+2. Sign in on `/guest` as a host (`ADMIN_EDITOR_EMAILS`) → **Pending** tab shows the row → **Approve**.
+3. Guest magic link for that email succeeds; guest sees RSVP / gifts / photos panels.
+4. Gifter (gift record, no approved RSVP) can sign in without host approval.
+5. Host JWT works for `POST /api/admin/upload` and `PUT /api/site-content` after `/guest` sign-in.

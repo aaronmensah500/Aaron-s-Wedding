@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { WeddingContentProvider, useWeddingContent } from "../lib/weddingContent";
-import { SiteEditorProvider } from "../lib/siteEditor";
+import { SiteEditorProvider, useSiteEditorOptional } from "../lib/siteEditor";
 import type { SitePageId } from "../lib/sitePages";
-import { ClientAdmin } from "./AdminPanel";
 import {
   useTweaks,
   TweaksPanel,
@@ -16,7 +15,9 @@ import { HomeStoryTeaser } from "./wedding/HomeStoryTeaser";
 import { TravelLogistics } from "./wedding/TravelLogistics";
 import { RSVP, BridalParty, Gallery } from "./wedding/RsvpBlock";
 import { Registry, Livestream, GuestExperience, Footer } from "./wedding/ExtrasBlock";
-import GuestPortal from "./GuestPortal";
+
+const ClientAdmin = lazy(() => import("./AdminPanel").then((m) => ({ default: m.ClientAdmin })));
+const GuestPage = lazy(() => import("./GuestPage"));
 
 function readAdminQuery(): boolean {
   if (typeof window === "undefined") return false;
@@ -105,6 +106,7 @@ function App({ page }: AppProps) {
   const [tweaksRaw, setTweak] = useTweaks({ ...TWEAK_DEFAULTS });
   const tweaks = tweaksRaw as TweakState;
   const { content, revision } = useWeddingContent();
+  const editor = useSiteEditorOptional();
   const countdownTarget = useMemo(() => {
     const d = new Date(content.site?.weddingDateIso);
     return Number.isNaN(d.getTime()) ? null : d;
@@ -116,7 +118,7 @@ function App({ page }: AppProps) {
     return () => window.removeEventListener("popstate", sync);
   }, []);
 
-  useReveal(revision);
+  useReveal(revision, page);
 
   useEffect(() => {
     applyTweaks(tweaks);
@@ -125,9 +127,12 @@ function App({ page }: AppProps) {
   const sec = content.sections || {};
   const showFooter = sec.footer !== false;
 
-  /** Dev always; production when env is set or when couple opens `?admin=1` (PIN still required). */
+  /** Dev, env flag, ?admin=1, or host signed in on /guest with allowlisted email. */
   const showSiteEditor =
-    import.meta.env.DEV || import.meta.env.PUBLIC_SHOW_SITE_EDITOR === "true" || adminUrlUnlock;
+    import.meta.env.DEV ||
+    import.meta.env.PUBLIC_SHOW_SITE_EDITOR === "true" ||
+    adminUrlUnlock ||
+    Boolean(editor?.emailAuthEnabled && editor?.hasSession);
 
   return (
     <div className="app" data-page={page}>
@@ -145,12 +150,23 @@ function App({ page }: AppProps) {
       {page === "gallery" && sec.gallery !== false && <Gallery />}
       {page === "registry" && sec.registry !== false && <Registry />}
       {page === "registry" && sec.stream !== false && <Livestream />}
-      {page === "guest" && sec.invitation !== false && <GuestExperience key={revision} />}
-      {page === "guest" && <GuestPortal />}
+      {page === "guest" && (sec.invitation !== false || import.meta.env.PUBLIC_SUPABASE_URL) ? (
+        <Suspense
+          fallback={
+            <section id="my-guest" className="section section--beige guest-portal">
+              <p className="guest-portal__hint" style={{ opacity: 1 }}>
+                Loading My guest…
+              </p>
+            </section>
+          }
+        >
+          <GuestPage revision={revision} />
+        </Suspense>
+      ) : null}
       {showFooter && <Footer key={revision} />}
 
       {showSiteEditor ? (
-        <>
+        <Suspense>
           <ClientAdmin />
           <TweaksPanel title="Tweaks">
             <TweakSection label="Palette" />
@@ -175,7 +191,7 @@ function App({ page }: AppProps) {
               options={["0", "1", "2", "3"]}
             />
           </TweaksPanel>
-        </>
+        </Suspense>
       ) : null}
     </div>
   );
@@ -187,6 +203,7 @@ function AppWithSiteEditor({ page }: AppProps) {
   const { content } = useWeddingContent();
   return (
     <SiteEditorProvider
+      currentPage={page}
       requirePin={content.admin?.requirePin !== false}
       expectedPin={String(content.admin?.pin ?? "")}
     >

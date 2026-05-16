@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { giftRowFromPaystackTransaction, upsertGiftRow } from "../../../lib/gifts-db";
+import { provisionAuthUserForEmail } from "../../../lib/provisionAuthUser";
 import { verifyPaystackWebhookSignature } from "../../../lib/paystack-server";
 import { getServiceSupabase } from "../../../lib/supabase/service";
 import { serverLog } from "../../../lib/server-log";
@@ -70,6 +71,8 @@ export const POST: APIRoute = async ({ request }) => {
     serverLog("error", "paystack_webhook_save_failed", { reference: row.reference, message: saved.message });
     return new Response("save failed", { status: 500 });
   }
+
+  await provisionAuthUserForEmail(service, row.email, { full_name: row.guestName || "" });
 
   return new Response("ok", { status: 200 });
 };

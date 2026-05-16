@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { jsonError, jsonOk } from "../../../lib/api/json";
 import { getClientIp } from "../../../lib/api/request-meta";
 import { giftRowFromPaystackTransaction, upsertGiftRow } from "../../../lib/gifts-db";
+import { provisionAuthUserForEmail } from "../../../lib/provisionAuthUser";
 import { fetchPaystackTransaction } from "../../../lib/paystack-server";
 import { rateLimitConsume } from "../../../lib/rate-limit";
 import { getServiceSupabase } from "../../../lib/supabase/service";
@@ -68,6 +69,13 @@ export const POST: APIRoute = async ({ request }) => {
   if (!saved.ok) {
     serverLog("error", "gift_record_save_failed", { ip, reference, message: saved.message });
     return jsonError("save_failed", 500, apiErrorMessage("save_failed"));
+  }
+
+  const provisioned = await provisionAuthUserForEmail(service, email, {
+    full_name: row.guestName || "",
+  });
+  if (!provisioned.ok) {
+    serverLog("warn", "gift_auth_provision_failed", { ip, email, message: provisioned.message });
   }
 
   return jsonOk({ reference: row.reference });

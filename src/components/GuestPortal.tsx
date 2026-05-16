@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getBrowserSupabase, isSupabaseConfigured } from "../lib/supabase/browser";
 import { parseApiErrorCode } from "../lib/api/json";
-import { WEDDING_SLUG } from "../lib/guest-access";
+import { apiErrorMessage } from "../i18n/en";
+import { WEDDING_SLUG } from "../lib/weddingConstants";
+import { GuestHostPanel } from "./GuestHostPanel";
+import { requestGuestOtp, verifyGuestOtp } from "../lib/guestOtpAuth";
+import { useWeddingContent } from "../lib/weddingContent";
 import { SITE_PATHS } from "../lib/sitePages";
 
 type GuestMediaRow = {
@@ -34,6 +38,11 @@ type GiftRow = {
 
 type SignedItem = GuestMediaRow & { signedUrl: string | null };
 
+type GuestPortalProps = {
+  session: Session | null;
+  authChecking: boolean;
+};
+
 function formatGiftAmount(subunit: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-GH", {
@@ -52,49 +61,57 @@ function formatWhen(iso: string): string {
   return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function GuestPortal() {
+export default function GuestPortal({ session, authChecking }: GuestPortalProps) {
   const configured = isSupabaseConfigured();
   const sb = configured ? getBrowserSupabase() : null;
+  const { content } = useWeddingContent();
+  const albums = content.gallery?.albums || [];
 
-  const [session, setSession] = useState(null as Session | null);
   const [loginEmail, setLoginEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpStep, setOtpStep] = useState("email" as "email" | "code");
   const [loginMsg, setLoginMsg] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
+  const [sessionRole, setSessionRole] = useState(null as "host" | "guest" | null);
+  const [roleLoading, setRoleLoading] = useState(false);
   const [rsvp, setRsvp] = useState(null as RsvpRow);
   const [gifts, setGifts] = useState([] as GiftRow[]);
   const [items, setItems] = useState([] as SignedItem[]);
-  const [loadErr, setLoadErr] = useState("");
+  const [rsvpErr, setRsvpErr] = useState("");
+  const [giftsErr, setGiftsErr] = useState("");
+  const [mediaErr, setMediaErr] = useState("");
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [uploadAlbumId, setUploadAlbumId] = useState("");
+  const lastLoadedUserId = useRef("");
 
   useEffect(() => {
-    if (!sb) return;
-    void sb.auth.getSession().then(({ data: { session: s } }) => setSession(s));
-    const {
-      data: { subscription },
-    } = sb.auth.onAuthStateChange((_event, s) => setSession(s));
-    return () => subscription.unsubscribe();
-  }, [sb]);
+    if (albums.length && !uploadAlbumId) {
+      setUploadAlbumId(String(albums[0]?.id ?? "general"));
+    }
+  }, [albums, uploadAlbumId]);
 
   const refreshRsvp = useCallback(async () => {
     if (!sb || !session) return;
+    setRsvpErr("");
     const { data, error } = await sb
       .from("rsvps")
       .select("attendance,full_name,events,guests,diet,song,note,updated_at")
       .eq("wedding_slug", WEDDING_SLUG)
       .maybeSingle();
-    if (error) setLoadErr(error.message);
+    if (error) setRsvpErr(error.message);
     else setRsvp(data);
   }, [sb, session]);
 
   const refreshGifts = useCallback(async () => {
     if (!sb || !session) return;
+    setGiftsErr("");
     const { data, error } = await sb
       .from("gifts")
       .select("id,amount_subunit,currency,reference,guest_name,created_at")
       .eq("wedding_slug", WEDDING_SLUG)
       .order("created_at", { ascending: false });
     if (error) {
-      setLoadErr(error.message);
+      setGiftsErr(error.message);
       setGifts([]);
       return;
     }
@@ -102,15 +119,16 @@ export default function GuestPortal() {
   }, [sb, session]);
 
   const refreshMedia = useCallback(async () => {
-    if (!sb || !session) return;
-    setLoadErr("");
+    if (!sb || !session?.user) return;
+    setMediaErr("");
     const { data, error } = await sb
       .from("guest_media")
       .select("id,object_path,original_name,created_at")
       .eq("wedding_slug", WEDDING_SLUG)
+      .eq("user_id", session.user.id)
       .order("created_at", { ascending: false });
     if (error) {
-      setLoadErr(error.message);
+      setMediaErr(error.message);
       setItems([]);
       return;
     }
@@ -125,40 +143,80 @@ export default function GuestPortal() {
   }, [sb, session]);
 
   useEffect(() => {
-    if (!session) {
+    if (!session?.access_token) {
+      setSessionRole(null);
+      return;
+    }
+    let cancelled = false;
+    setRoleLoading(true);
+    void fetch("/api/auth/session", {
+      headers: { Authorization: `Bearer ${session.access_token}`, Accept: "application/json" },
+    })
+      .then(r => r.json().catch(() => ({})))
+      .then(j => {
+        if (cancelled) return;
+        const role = (j as { role?: string }).role;
+        setSessionRole(role === "host" ? "host" : "guest");
+      })
+      .catch(() => {
+        if (!cancelled) setSessionRole("guest");
+      })
+      .finally(() => {
+        if (!cancelled) setRoleLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.access_token]);
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      lastLoadedUserId.current = "";
       setRsvp(null);
       setGifts([]);
       setItems([]);
+      setRsvpErr("");
+      setGiftsErr("");
+      setMediaErr("");
+      setSessionRole(null);
       return;
     }
+    if (lastLoadedUserId.current === session.user.id) return;
+    lastLoadedUserId.current = session.user.id;
     void refreshRsvp();
     void refreshGifts();
     void refreshMedia();
-  }, [session, refreshRsvp, refreshGifts, refreshMedia]);
+  }, [session?.user?.id, refreshRsvp, refreshGifts, refreshMedia]);
 
-  const requestLink = async (e: FormEvent) => {
+  const sendOtp = async (e: FormEvent) => {
     e.preventDefault();
     setLoginMsg("");
     setLoginBusy(true);
     try {
-      const r = await fetch("/api/auth/magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail }),
-      });
-      const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-      if (!r.ok) {
-        const code = parseApiErrorCode(j);
-        setLoginMsg(
-          code === "not_on_guest_list"
-            ? "We don't have an RSVP or gift from that email yet. RSVP or contribute first, then try again."
-            : typeof j.error === "object" && j.error !== null && "message" in j.error
-              ? String((j.error as { message: unknown }).message)
-              : code || "Could not send link."
-        );
+      const result = await requestGuestOtp(loginEmail);
+      if (!result.ok) {
+        setLoginMsg(result.message);
         return;
       }
-      setLoginMsg("Check your email for the sign-in link — it opens this page.");
+      setOtpStep("code");
+      setOtpCode("");
+      setLoginMsg(apiErrorMessage("otp_sent"));
+    } finally {
+      setLoginBusy(false);
+    }
+  };
+
+  const submitOtp = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoginMsg("");
+    setLoginBusy(true);
+    try {
+      const result = await verifyGuestOtp(loginEmail, otpCode);
+      if (!result.ok) {
+        setLoginMsg(result.message);
+        return;
+      }
+      setLoginMsg("");
     } finally {
       setLoginBusy(false);
     }
@@ -167,13 +225,17 @@ export default function GuestPortal() {
   const onPickFiles = async (e: { currentTarget: HTMLInputElement }) => {
     const files = e.currentTarget.files;
     if (!sb || !session?.user || !files?.length) return;
+    if (!uploadAlbumId) {
+      setMediaErr("Choose an album before uploading.");
+      return;
+    }
     setUploadBusy(true);
-    setLoadErr("");
+    setMediaErr("");
     try {
       const uid = session.user.id;
       for (const file of Array.from(files)) {
         if (file.size > 25 * 1024 * 1024) {
-          setLoadErr("Each file must be 25MB or smaller.");
+          setMediaErr("Each file must be 25MB or smaller.");
           continue;
         }
         const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
@@ -183,16 +245,17 @@ export default function GuestPortal() {
           upsert: false,
         });
         if (upErr) {
-          setLoadErr(upErr.message);
+          setMediaErr(upErr.message);
           continue;
         }
         const { error: insErr } = await sb.from("guest_media").insert({
           wedding_slug: WEDDING_SLUG,
           user_id: uid,
+          album_id: uploadAlbumId,
           object_path: path,
           original_name: file.name,
         });
-        if (insErr) setLoadErr(insErr.message);
+        if (insErr) setMediaErr(insErr.message);
       }
       await refreshMedia();
     } finally {
@@ -201,12 +264,15 @@ export default function GuestPortal() {
     }
   };
 
-  const signOut = () => void sb?.auth.signOut();
+  const signOut = () => {
+    lastLoadedUserId.current = "";
+    void sb?.auth.signOut();
+  };
 
   if (!configured) {
     return (
       <section id="my-guest" className="section guest-portal guest-portal--off">
-        <div className="section__head reveal">
+        <div className="section__head reveal in">
           <div>
             <div className="eyebrow">
               My guest <span className="dot" /> Sign in
@@ -224,7 +290,7 @@ export default function GuestPortal() {
 
   return (
     <section id="my-guest" className="section section--beige guest-portal">
-      <div className="section__head reveal">
+      <div className="section__head reveal in">
         <div>
           <div className="eyebrow">
             My guest <span className="dot" /> Sign in
@@ -234,32 +300,38 @@ export default function GuestPortal() {
           </h2>
         </div>
         <p className="section__lede">
-          See your RSVP, gifts, and — if you&apos;re attending — share photos. Use the same email you used when you replied or contributed.
+          Enter your email — we&apos;ll send a 6-digit code. Guests: same email as your approved RSVP or gift. Couple:
+          your allowlisted editor email.
         </p>
       </div>
 
-      <div className="guest-portal__card reveal">
-        {!session ? (
-          <form className="guest-portal__form" onSubmit={requestLink}>
-            <div className="eyebrow">Email sign-in</div>
-            <p className="guest-portal__hint">
-              No password — we&apos;ll send a one-time link. Works after you&apos;ve RSVP&apos;d or made a gift with this email.
-            </p>
-            <div className="field">
-              <label htmlFor="guest-login-email">Email</label>
-              <input
-                id="guest-login-email"
-                type="email"
-                autoComplete="email"
-                value={loginEmail}
-                onChange={e => setLoginEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <button type="submit" className="btn" disabled={loginBusy}>
-              {loginBusy ? "Sending…" : "Email me a sign-in link"} <span className="arrow">→</span>
-            </button>
+      <div className="guest-portal__card reveal in">
+        {authChecking ? (
+          <p className="guest-portal__hint" role="status">
+            Signing you in…
+          </p>
+        ) : !session ? (
+          otpStep === "email" ? (
+            <form className="guest-portal__form" onSubmit={sendOtp}>
+              <div className="eyebrow">Email</div>
+              <p className="guest-portal__hint">
+                We&apos;ll email you a 6-digit code. Use the same address as your approved RSVP or gift.
+              </p>
+              <div className="field">
+                <label htmlFor="guest-login-email">Email</label>
+                <input
+                  id="guest-login-email"
+                  type="email"
+                  autoComplete="email"
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              <button type="submit" className="btn" disabled={loginBusy || !loginEmail.trim()}>
+                {loginBusy ? "Sending…" : "Send 6-digit code"} <span className="arrow">→</span>
+              </button>
             {loginMsg ? (
               <p className="guest-portal__msg" role="status" aria-live="polite">
                 {loginMsg}
@@ -270,7 +342,66 @@ export default function GuestPortal() {
               {" · "}
               <a href={SITE_PATHS.registry}>Gifts</a>
             </p>
-          </form>
+            </form>
+          ) : (
+            <form className="guest-portal__form" onSubmit={submitOtp}>
+              <div className="eyebrow">6-digit code</div>
+              <p className="guest-portal__hint">
+                Enter the code we sent to <strong>{loginEmail}</strong>.
+              </p>
+              <div className="field">
+                <label htmlFor="guest-login-otp">Code</label>
+                <input
+                  id="guest-login-otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  pattern="[0-9]{6}"
+                  value={otpCode}
+                  onChange={e => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="000000"
+                  required
+                />
+              </div>
+              <button type="submit" className="btn" disabled={loginBusy || otpCode.length !== 6}>
+                {loginBusy ? "Verifying…" : "Sign in"} <span className="arrow">→</span>
+              </button>
+              {loginMsg ? (
+                <p className="guest-portal__msg" role="status" aria-live="polite">
+                  {loginMsg}
+                </p>
+              ) : null}
+              <p className="guest-portal__fine">
+                <button
+                  type="button"
+                  className="guest-portal__link-btn"
+                  onClick={() => {
+                    setOtpStep("email");
+                    setOtpCode("");
+                    setLoginMsg("");
+                  }}
+                >
+                  Use a different email
+                </button>
+                {" · "}
+                <button
+                  type="button"
+                  className="guest-portal__link-btn"
+                  disabled={loginBusy}
+                  onClick={() => {
+                    setLoginBusy(true);
+                    void requestGuestOtp(loginEmail).then(result => {
+                      setLoginBusy(false);
+                      setLoginMsg(result.ok ? apiErrorMessage("otp_sent") : result.message);
+                    });
+                  }}
+                >
+                  Resend code
+                </button>
+              </p>
+            </form>
+          )
         ) : (
           <div className="guest-portal__signed">
             <div className="guest-portal__signed-hd">
@@ -286,18 +417,28 @@ export default function GuestPortal() {
               </button>
             </div>
 
-            {loadErr ? (
-              <p className="guest-portal__err" role="alert">
-                {loadErr}
+            {roleLoading ? (
+              <p className="guest-portal__hint" role="status">
+                Loading your account…
               </p>
             ) : null}
-
+            {sessionRole === "host" ? <GuestHostPanel session={session} /> : null}
             <div className="guest-portal__panels">
+              {sessionRole === "host" ? (
+                <p className="guest-portal__hint guest-host__editor-hint">
+                  Site editor: use <strong>Edit site</strong> on any page (toolbar) after signing in here.
+                </p>
+              ) : null}
               {rsvp ? (
                 <section className="guest-portal__panel" aria-labelledby="my-rsvp-title">
                   <h3 id="my-rsvp-title" className="guest-portal__panel-title">
                     Your RSVP
                   </h3>
+                  {rsvpErr ? (
+                    <p className="guest-portal__err" role="alert">
+                      {rsvpErr}
+                    </p>
+                  ) : null}
                   <dl className="guest-portal__dl">
                     <div>
                       <dt>Reply</dt>
@@ -343,6 +484,11 @@ export default function GuestPortal() {
               ) : (
                 <section className="guest-portal__panel">
                   <h3 className="guest-portal__panel-title">Your RSVP</h3>
+                  {rsvpErr ? (
+                    <p className="guest-portal__err" role="alert">
+                      {rsvpErr}
+                    </p>
+                  ) : null}
                   <p className="guest-portal__hint">
                     No RSVP on file for this email. <a href={SITE_PATHS.rsvp}>Reply here</a>.
                   </p>
@@ -353,6 +499,11 @@ export default function GuestPortal() {
                 <h3 id="my-gifts-title" className="guest-portal__panel-title">
                   Your gifts
                 </h3>
+                {giftsErr ? (
+                  <p className="guest-portal__err" role="alert">
+                    {giftsErr}
+                  </p>
+                ) : null}
                 {gifts.length > 0 ? (
                   <ul className="guest-portal__gift-list">
                     {gifts.map(g => (
@@ -370,7 +521,8 @@ export default function GuestPortal() {
                   </ul>
                 ) : (
                   <p className="guest-portal__hint">
-                    No gifts recorded yet for this email. Paystack sends a receipt too — gifts appear here after a successful contribution.
+                    No gifts recorded yet for this email. Paystack sends a receipt too — gifts appear here after a
+                    successful contribution.
                   </p>
                 )}
               </section>
@@ -381,17 +533,45 @@ export default function GuestPortal() {
                 </h3>
                 {rsvp?.attendance === "no" ? (
                   <p className="guest-portal__hint">
-                    Uploads are for guests who accepted the invitation. Thank you for letting us know you can&apos;t attend.
+                    Uploads are for guests who accepted the invitation. Thank you for letting us know you can&apos;t
+                    attend.
                   </p>
                 ) : rsvp?.attendance === "yes" ? (
                   <>
+                    <div className="field guest-portal__album-field">
+                      <label htmlFor="guest-upload-album">Album</label>
+                      <select
+                        id="guest-upload-album"
+                        value={uploadAlbumId}
+                        onChange={e => setUploadAlbumId(e.target.value)}
+                        required
+                      >
+                        {albums.map((a: { id: string; title: string }) => (
+                          <option key={a.id} value={a.id}>
+                            {a.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="guest-portal__upload">
                       <label className="btn btn--gold guest-portal__file-btn">
                         {uploadBusy ? "Uploading…" : "Choose photos or videos"}
-                        <input type="file" accept="image/*,video/*" multiple hidden disabled={uploadBusy} onChange={onPickFiles} />
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          multiple
+                          hidden
+                          disabled={uploadBusy || !uploadAlbumId}
+                          onChange={onPickFiles}
+                        />
                       </label>
-                      <span className="guest-portal__fine">Up to 25MB per file.</span>
+                      <span className="guest-portal__fine">Up to 25MB per file. Photos appear on the public gallery.</span>
                     </div>
+                    {mediaErr ? (
+                      <p className="guest-portal__err" role="alert">
+                        {mediaErr}
+                      </p>
+                    ) : null}
                     {items.length > 0 ? (
                       <ul className="guest-portal__grid">
                         {items.map(it => (
