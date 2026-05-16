@@ -8,6 +8,7 @@ import {
   type MouseEvent,
 } from "react";
 import { useSiteEditorOptional } from "../../lib/siteEditor";
+import { stripToPlainText } from "../../lib/plainText";
 
 type EditableTextProps = {
   value: string | undefined;
@@ -18,6 +19,8 @@ type EditableTextProps = {
   multiline?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  /** Reject HTML tags and entities on save (plain text only). */
+  plainText?: boolean;
 };
 
 function stripPastedText(text: string): string {
@@ -33,6 +36,7 @@ export function EditableText({
   multiline = false,
   disabled = false,
   placeholder = "",
+  plainText = false,
 }: EditableTextProps) {
   const editor = useSiteEditorOptional();
   const isEditing = Boolean(editor?.isEditing) && !disabled;
@@ -60,11 +64,12 @@ export function EditableText({
   }, [active]);
 
   const commit = useCallback(() => {
-    const next = draft.trimEnd();
+    let next = draft.trimEnd();
+    if (plainText) next = stripToPlainText(next);
     setActive(false);
     committedRef.current = next;
     if (next !== display) onChange(next);
-  }, [draft, display, onChange]);
+  }, [draft, display, onChange, plainText]);
 
   const cancel = useCallback(() => {
     setDraft(committedRef.current);

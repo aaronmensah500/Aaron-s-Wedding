@@ -7,7 +7,6 @@ import { SITE_PATHS } from "../../lib/sitePages";
 import { Ph } from "./Core";
 import { EditableText } from "../editable/EditableText";
 import { EditableImage } from "../editable/EditableImage";
-import { EditableHtml } from "../editable/EditableHtml";
 import { SectionHead } from "../editable/SectionTitle";
 
 type RsvpForm = {
@@ -154,23 +153,49 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
           <div className="ornament" />
           <div>
             <div className="rsvp-stamp">
-              <EditableText value={r.posterStampTop} onChange={v => patchContent({ rsvp: { posterStampTop: v } })} />
+              <EditableText
+                value={r.posterStampTop}
+                onChange={v => patchContent({ rsvp: { posterStampTop: v } })}
+                plainText
+              />
             </div>
-            <EditableHtml
-              as="h3"
-              value={r.posterTitleHtml}
-              onChange={v => patchContent({ rsvp: { posterTitleHtml: v } })}
-              className=""
-            />
+            <h3>
+              <EditableText
+                value={r.posterTitleLine1}
+                onChange={v => patchContent({ rsvp: { posterTitleLine1: v } })}
+                plainText
+              />
+              <br />
+              <EditableText
+                value={r.posterTitleLine2}
+                onChange={v => patchContent({ rsvp: { posterTitleLine2: v } })}
+                plainText
+              />{" "}
+              <em>
+                <EditableText
+                  value={r.posterTitleEm}
+                  onChange={v => patchContent({ rsvp: { posterTitleEm: v } })}
+                  plainText
+                />
+              </em>
+            </h3>
             <p>
-              <EditableText value={r.posterBody} onChange={v => patchContent({ rsvp: { posterBody: v } })} multiline as="span" />
+              <EditableText
+                value={r.posterBody}
+                onChange={v => patchContent({ rsvp: { posterBody: v } })}
+                multiline
+                as="span"
+                plainText
+              />
             </p>
           </div>
-          <EditableHtml
-            value={r.posterStampBottom}
-            onChange={v => patchContent({ rsvp: { posterStampBottom: v } })}
-            className="rsvp-stamp"
-          />
+          <div className="rsvp-stamp">
+            <EditableText
+              value={r.posterStampLine}
+              onChange={v => patchContent({ rsvp: { posterStampLine: v } })}
+              plainText
+            />
+          </div>
         </aside>
 
         <div className="rsvp__form-card">
@@ -185,14 +210,22 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
 
           {step === 0 && (
             <div className="rsvp__panel">
-              <div className="eyebrow">{r.step1Eyebrow}</div>
-              <div className="rsvp__lead">{r.step1Lead}</div>
+              <div className="eyebrow">
+                <EditableText value={r.step1Eyebrow} onChange={v => patchContent({ rsvp: { step1Eyebrow: v } })} />
+              </div>
+              <div className="rsvp__lead">
+                <EditableText value={r.step1Lead} onChange={v => patchContent({ rsvp: { step1Lead: v } })} />
+              </div>
               <div className="field">
-                <label>{r.labelName}</label>
+                <label>
+                  <EditableText value={r.labelName} onChange={v => patchContent({ rsvp: { labelName: v } })} />
+                </label>
                 <input value={data.name} onChange={e => set("name", e.target.value)} placeholder={r.phName} />
               </div>
               <div className="field">
-                <label>{r.labelEmail}</label>
+                <label>
+                  <EditableText value={r.labelEmail} onChange={v => patchContent({ rsvp: { labelEmail: v } })} />
+                </label>
                 <input type="email" value={data.email} onChange={e => set("email", e.target.value)} placeholder={r.phEmail} />
               </div>
             </div>
@@ -200,8 +233,12 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
 
           {step === 1 && (
             <div className="rsvp__panel">
-              <div className="eyebrow">{r.step2Eyebrow}</div>
-              <div className="rsvp__lead">{r.step2Lead}</div>
+              <div className="eyebrow">
+                <EditableText value={r.step2Eyebrow} onChange={v => patchContent({ rsvp: { step2Eyebrow: v } })} />
+              </div>
+              <div className="rsvp__lead">
+                <EditableText value={r.step2Lead} onChange={v => patchContent({ rsvp: { step2Lead: v } })} />
+              </div>
               <div className="choice-row">
                 <button type="button" className={`choice choice--gold ${data.attendance === "yes" ? "selected" : ""}`} onClick={() => set("attendance", "yes")}>{r.acceptLabel}</button>
                 <button type="button" className={`choice ${data.attendance === "no" ? "selected" : ""}`} onClick={() => set("attendance", "no")}>{r.declineLabel}</button>
@@ -209,7 +246,9 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
               {data.attendance === "yes" && (
                 <>
                   <div className="field" style={{ marginTop: 16 }}>
-                    <label>{r.eventsLabel}</label>
+                    <label>
+                      <EditableText value={r.eventsLabel} onChange={v => patchContent({ rsvp: { eventsLabel: v } })} />
+                    </label>
                     <div className="choice-row">
                       {["ceremony","cocktails","reception","brunch"].map(ev => (
                         <button type="button" key={ev} className={`choice ${data.events.includes(ev) ? "selected" : ""}`} onClick={() => toggle("events", ev)}>{ev}</button>
@@ -217,7 +256,9 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
                     </div>
                   </div>
                   <div className="field">
-                    <label>{r.guestsLabel}</label>
+                    <label>
+                      <EditableText value={r.guestsLabel} onChange={v => patchContent({ rsvp: { guestsLabel: v } })} />
+                    </label>
                     <div className="counter">
                       <button type="button" onClick={() => set("guests", Math.max(1, data.guests - 1))}>–</button>
                       <div className="counter__val">{data.guests}</div>
@@ -232,10 +273,16 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
 
           {step === 2 && (
             <div className="rsvp__panel">
-              <div className="eyebrow">{r.step3Eyebrow}</div>
-              <div className="rsvp__lead">{r.step3Lead}</div>
+              <div className="eyebrow">
+                <EditableText value={r.step3Eyebrow} onChange={v => patchContent({ rsvp: { step3Eyebrow: v } })} />
+              </div>
+              <div className="rsvp__lead">
+                <EditableText value={r.step3Lead} onChange={v => patchContent({ rsvp: { step3Lead: v } })} />
+              </div>
               <div className="field">
-                <label>{r.dietLabel}</label>
+                <label>
+                  <EditableText value={r.dietLabel} onChange={v => patchContent({ rsvp: { dietLabel: v } })} />
+                </label>
                 <div className="choice-row">
                   {["Vegetarian","Vegan","Pescatarian","Gluten-free","No restrictions"].map(d => (
                     <button type="button" key={d} className={`choice ${data.diet.includes(d) ? "selected" : ""}`} onClick={() => toggle("diet", d)}>{d}</button>
@@ -243,11 +290,15 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
                 </div>
               </div>
               <div className="field">
-                <label>{r.songLabel}</label>
+                <label>
+                  <EditableText value={r.songLabel} onChange={v => patchContent({ rsvp: { songLabel: v } })} />
+                </label>
                 <input value={data.song} onChange={e => set("song", e.target.value)} placeholder={r.songPh} />
               </div>
               <div className="field">
-                <label>{r.noteLabel}</label>
+                <label>
+                  <EditableText value={r.noteLabel} onChange={v => patchContent({ rsvp: { noteLabel: v } })} />
+                </label>
                 <textarea value={data.note} onChange={e => set("note", e.target.value)} placeholder={r.notePh} />
               </div>
             </div>

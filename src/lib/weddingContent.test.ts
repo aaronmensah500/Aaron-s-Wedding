@@ -5,6 +5,8 @@ import {
   validateSiteContentImport,
 } from "./weddingContent";
 
+type SiteContent = Parameters<typeof localDraftDiffersFromPublished>[0];
+
 describe("validateSiteContentImport", () => {
   it("accepts objects with sections", () => {
     const r = validateSiteContentImport({ sections: { hero: true }, hero: { nameLine1: "A" } });
@@ -50,8 +52,8 @@ describe("localDraftDiffersFromPublished", () => {
   it("detects different weddingDateIso", () => {
     expect(
       localDraftDiffersFromPublished(
-        { site: { weddingDateIso: "2026-06-01T16:30:00.000Z" } },
-        { site: { weddingDateIso: "2026-12-12T16:30:00.000Z" } }
+        { site: { weddingDateIso: "2026-06-01T16:30:00.000Z" } } as SiteContent,
+        { site: { weddingDateIso: "2026-12-12T16:30:00.000Z" } } as SiteContent
       )
     ).toBe(true);
   });
@@ -59,7 +61,10 @@ describe("localDraftDiffersFromPublished", () => {
   it("is false when dates match", () => {
     const iso = "2026-12-12T16:30:00.000Z";
     expect(
-      localDraftDiffersFromPublished({ site: { weddingDateIso: iso } }, { site: { weddingDateIso: iso } })
+      localDraftDiffersFromPublished(
+        { site: { weddingDateIso: iso } } as SiteContent,
+        { site: { weddingDateIso: iso } } as SiteContent
+      )
     ).toBe(false);
   });
 });

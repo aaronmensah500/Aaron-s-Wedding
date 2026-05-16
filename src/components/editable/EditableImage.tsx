@@ -64,20 +64,20 @@ export function EditableImage({
         aria-hidden
         onChange={onInputChange}
       />
+      <Ph label={label} src={src} variant={variant} className="editable-image__ph" />
       <button
         type="button"
-        className="editable-image__hit"
+        className="editable-image__upload-btn"
         onClick={openPicker}
         disabled={busy || !canUpload}
-        title={canUpload ? "Tap to choose a photo from your phone" : "Unlock the editor with your PIN first"}
+        title={canUpload ? "Choose a photo" : "Unlock the editor with your PIN first"}
         aria-label={canUpload ? "Upload photo" : "Unlock editor to upload"}
       >
-        <Ph label={label} src={src} variant={variant} className="editable-image__ph" />
-        <span className="editable-image__badge">
-          {busy ? "Uploading…" : canUpload ? "Tap to upload" : "Unlock editor first"}
+        <span className="editable-image__upload-icon" aria-hidden>
+          {busy ? "…" : "+"}
         </span>
-        {busy ? <span className="editable-image__busy" aria-hidden /> : null}
       </button>
+      {busy ? <span className="editable-image__busy" aria-hidden /> : null}
       {src ? (
         <button
           type="button"

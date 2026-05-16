@@ -16,6 +16,12 @@
 [data-site-editing="true"] .story__media .editable-image {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+[data-site-editing="true"] .story__media .editable-image__upload-btn,
+[data-site-editing="true"] .story__media .editable-image__remove {
+  pointer-events: auto;
 }
 .story__media .ph { position: absolute; inset: 0; }
 .story__media .stamp {
@@ -23,6 +29,10 @@
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.28em;
   background: var(--warm-white); padding: 8px 14px; border: 1px solid var(--hairline);
   z-index: 2;
+}
+[data-site-editing="true"] .story__media .stamp {
+  z-index: 5;
+  pointer-events: auto;
 }
 .story__body { padding: 16px 0; }
 .story__chapter-num { font-family: var(--mono); font-size: 11px; letter-spacing: 0.32em; color: var(--champagne); margin-bottom: 24px; }
@@ -612,6 +622,17 @@
   padding: 48px; display: flex; flex-direction: column; justify-content: space-between;
   overflow: hidden;
 }
+[data-site-editing="true"] .rsvp__poster {
+  overflow: visible;
+}
+[data-site-editing="true"] .rsvp__poster .editable-text {
+  position: relative;
+  z-index: 2;
+}
+.rsvp__poster .editable-text__input {
+  color: var(--ivory);
+  background: transparent;
+}
 .rsvp__poster::before {
   content: ""; position: absolute; inset: 0;
   background:
@@ -835,13 +856,21 @@
   position: absolute;
   inset: 0;
   z-index: 1;
+  pointer-events: none;
+}
+[data-site-editing="true"] .party-card .editable-image__upload-btn,
+[data-site-editing="true"] .party-card .editable-image__remove {
+  pointer-events: auto;
 }
 [data-site-editing="true"] .party-card__overlay {
-  pointer-events: none;
   z-index: 2;
+  pointer-events: none;
 }
 [data-site-editing="true"] .party-card__overlay [data-editable] {
   pointer-events: auto;
+}
+[data-site-editing="true"] .guest-card [data-editable] {
+  cursor: text;
 }
 
 @media (max-width: 900px) { .party__grid { grid-template-columns: 1fr 1fr; gap: 12px; } }

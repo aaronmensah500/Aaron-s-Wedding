@@ -717,32 +717,31 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
 /* Inline tap-to-edit (text fields only — photos keep normal layout) */
 [data-site-editing="true"] [data-editable]:not([data-editable="image"]) {
   cursor: text;
-  border-radius: 2px;
 }
 [data-site-editing="true"] [data-editable]:not([data-editable="image"]):hover,
 [data-site-editing="true"] [data-editable]:not([data-editable="image"]):focus-visible {
-  outline: 1px dashed var(--champagne);
-  outline-offset: 3px;
+  outline: none;
 }
 [data-site-editing="true"] [data-editable="image"] {
-  cursor: pointer;
+  cursor: default;
 }
 [data-editing="true"],
 .editable-text__input[data-editing] {
-  outline: 2px solid var(--champagne) !important;
-  outline-offset: 2px;
+  outline: none !important;
+  box-shadow: none !important;
 }
 .editable-text__input {
   font: inherit;
   color: inherit;
   letter-spacing: inherit;
   text-transform: inherit;
-  background: rgba(246, 242, 234, 0.92);
+  background: transparent;
   border: 0;
   padding: 0;
   margin: 0;
   resize: none;
   field-sizing: content;
+  -webkit-text-fill-color: currentColor;
 }
 .editable-text__input:focus {
   outline: none;
@@ -760,25 +759,6 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   height: 100%;
   min-height: 0;
 }
-.editable-image__hit {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  text-align: inherit;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.editable-image__hit:disabled {
-  cursor: not-allowed;
-}
-.editable-image__hit .ph,
 .editable-image__ph {
   position: absolute;
   inset: 0;
@@ -786,32 +766,49 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   height: 100%;
   pointer-events: none;
 }
-.editable-image__badge,
+.editable-image__upload-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
 .editable-image__remove {
   opacity: 0;
   transition: opacity 0.2s var(--ease-luxe);
   pointer-events: none;
 }
-.editable-image:focus-within .editable-image__badge,
 .editable-image:focus-within .editable-image__remove,
-.editable-image:hover .editable-image__badge,
 .editable-image:hover .editable-image__remove {
   opacity: 1;
   pointer-events: auto;
 }
-.editable-image__badge {
+.editable-image__upload-btn {
   position: absolute;
-  right: 8px;
-  bottom: 8px;
-  z-index: 4;
-  font-family: var(--sans);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(26, 23, 20, 0.82);
+  right: 10px;
+  bottom: 10px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(246, 242, 234, 0.45);
+  border-radius: 50%;
+  background: rgba(26, 23, 20, 0.88);
   color: var(--ivory);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.editable-image__upload-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.editable-image__upload-icon {
+  font-family: var(--sans);
+  font-size: 26px;
+  font-weight: 300;
+  line-height: 1;
 }
 .editable-image__busy {
   position: absolute;
@@ -821,7 +818,7 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   pointer-events: none;
 }
 .editable-image:focus-within .editable-image__busy,
-.editable-image[data-uploading="true"] .editable-image__badge {
+.editable-image[data-uploading="true"] .editable-image__busy {
   opacity: 1;
 }
 .editable-image__remove {
@@ -858,34 +855,42 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   text-align: center;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
 }
-.editable-html__popover {
-  position: absolute;
-  z-index: 2147483003;
-  left: 0;
-  top: calc(100% + 8px);
-  min-width: min(320px, 90vw);
-  max-width: min(360px, calc(100vw - 24px));
-  box-sizing: border-box;
-  padding: 14px;
-  background: var(--warm-white);
-  border: 1px solid var(--hairline);
-  border-radius: 10px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+.editable-html {
+  position: relative;
+  display: block;
+  width: 100%;
+  cursor: text;
+}
+.editable-html--editing {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  width: 100%;
+}
+.editable-html__input {
+  width: 100%;
+  min-height: 4em;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+.rsvp__poster .editable-html__input {
+  color: var(--ivory);
+  background: rgba(246, 242, 234, 0.12);
+  border: 1px dashed rgba(217, 178, 107, 0.55);
+  border-radius: 4px;
+  padding: 10px 12px;
 }
 .editable-html__hint {
   margin: 0;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
   line-height: 1.4;
+  letter-spacing: 0.04em;
 }
-.editable-html__textarea {
-  width: 100%;
-  min-height: 100px;
-  font-family: var(--mono);
-  font-size: 12px;
+.rsvp__poster .editable-html__hint {
+  color: rgba(246, 242, 234, 0.55);
 }
 .editable-html__actions,
 .editable-image__actions {
@@ -1035,14 +1040,7 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
     flex: 1 1 auto;
     min-width: 0;
   }
-  .editable-html__popover {
-    min-width: 0;
-    max-width: calc(100vw - 24px);
-    border-radius: 8px;
-    padding: 12px;
-  }
-  .editable-html__textarea {
+  .editable-html__input {
     max-width: 100%;
-    box-sizing: border-box;
   }
 }

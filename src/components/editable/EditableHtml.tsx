@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { sanitizePosterHtml } from "../../lib/sanitize-poster";
 import { useSiteEditorOptional } from "../../lib/siteEditor";
 
@@ -13,78 +13,101 @@ export function EditableHtml({ value, onChange, className = "", as: Tag = "div" 
   const editor = useSiteEditorOptional();
   const isEditing = Boolean(editor?.isEditing);
   const html = value ?? "";
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [active, setActive] = useState(false);
   const [draft, setDraft] = useState(html);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const committedRef = useRef(html);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!popoverOpen) setDraft(html);
-  }, [html, popoverOpen]);
+    if (!active) {
+      setDraft(html);
+      committedRef.current = html;
+    }
+  }, [html, active]);
 
   useEffect(() => {
-    if (!popoverOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setPopoverOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [popoverOpen]);
+    if (active && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.style.height = "auto";
+      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+    }
+  }, [active]);
 
   const commit = useCallback(() => {
-    onChange(draft);
-    setPopoverOpen(false);
-  }, [draft, onChange]);
+    const next = draft.trimEnd();
+    setActive(false);
+    committedRef.current = next;
+    if (next !== html) onChange(next);
+  }, [draft, html, onChange]);
 
-  const inner = (
+  const cancel = useCallback(() => {
+    setDraft(committedRef.current);
+    setActive(false);
+  }, []);
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cancel();
+    }
+  };
+
+  const preview = (
     <Tag
       className={className}
       dangerouslySetInnerHTML={{ __html: sanitizePosterHtml(html) }}
     />
   );
 
-  if (!isEditing) return inner;
+  if (!isEditing) return preview;
 
-  return (
-    <div className="editable-html" data-editable>
+  if (!active) {
+    const handleActivate = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDraft(html);
+      committedRef.current = html;
+      setActive(true);
+    };
+    return (
       <div
-        role="button"
-        tabIndex={0}
-        title="Tap to edit HTML"
-        onClick={e => {
-          e.preventDefault();
-          e.stopPropagation();
-          setPopoverOpen(true);
-        }}
+        className="editable-html"
+        data-editable
+        onClick={handleActivate}
         onKeyDown={e => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setPopoverOpen(true);
+            handleActivate(e as unknown as MouseEvent);
           }
         }}
+        role="button"
+        tabIndex={0}
+        title="Tap to edit"
       >
-        {inner}
+        {preview}
       </div>
-      {popoverOpen ? (
-        <div ref={popoverRef} className="editable-html__popover" role="dialog" aria-label="Edit HTML">
-          <p className="editable-html__hint">Use &lt;br/&gt; for line breaks and &lt;em&gt; for script emphasis.</p>
-          <textarea
-            className="editable-html__textarea adm-field__input"
-            rows={5}
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-          />
-          <div className="editable-html__actions">
-            <button type="button" className="adm-btn adm-btn--sm" onClick={commit}>
-              Save
-            </button>
-            <button type="button" className="adm-btn adm-btn--sm adm-btn--ghost" onClick={() => setPopoverOpen(false)}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : null}
+    );
+  }
+
+  return (
+    <div className="editable-html editable-html--editing" data-editable data-editing>
+      <textarea
+        ref={inputRef}
+        className={`editable-text__input editable-html__input ${className}`.trim()}
+        rows={3}
+        value={draft}
+        placeholder="Use &lt;br/&gt; for line breaks and &lt;em&gt; for script emphasis."
+        onChange={e => {
+          setDraft(e.target.value);
+          e.target.style.height = "auto";
+          e.target.style.height = `${e.target.scrollHeight}px`;
+        }}
+        onBlur={commit}
+        onKeyDown={onKeyDown}
+      />
+      <p className="editable-html__hint">
+        Use &lt;br/&gt; for line breaks and &lt;em&gt; for script emphasis.
+      </p>
     </div>
   );
 }

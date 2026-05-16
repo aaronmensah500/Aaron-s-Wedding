@@ -14,6 +14,7 @@ import {
 } from "react";
 import { fetchPublishedSiteContent, publishSiteContent } from "./siteContentApi";
 import { contentPatchesFromWeddingDate } from "./weddingDateFormats";
+import { stripToPlainText } from "./plainText";
 
 /** Current persisted key. v1 is read once and migrated so repo default name/venue updates are not stuck under old merges. */
 const WEDDING_SITE_STORAGE_KEY = "wedding-site-content-v2";
@@ -382,9 +383,11 @@ const WEDDING_CONTENT_DEFAULT = {
     titleLine2: "by October 1st",
     lede: "A few questions so we can host you properly. Three short steps — and a quiet seat at the table is yours.",
     posterStampTop: "An Invitation",
-    posterTitleHtml: "The pleasure<br/> of your <em>company</em>",
+    posterTitleLine1: "The pleasure",
+    posterTitleLine2: "of your",
+    posterTitleEm: "company",
     posterBody: "You are warmly invited to celebrate with us at Agape House and El-Wak Sports Stadium. We've reserved a seat in your name and would love to know how you take your wine.",
-    posterStampBottom: 'Aaron <span style="font-family:var(--script);font-size:18px;color:var(--champagne)">&amp;</span> Princess · MMXXVI',
+    posterStampLine: "Aaron & Princess · MMXXVI",
     step1Eyebrow: "Step one",
     step1Lead: "Let's begin with your name.",
     labelName: "Full name",
@@ -461,6 +464,7 @@ const WEDDING_CONTENT_DEFAULT = {
     fundTitle: "An island in Zanzibar",
     currencies: "GHS · Paystack secure checkout",
     fundBody: "Two weeks on the east coast, a small fishing boat, and the slowest pace we can manage. Pick an amount, enter your email, and complete payment in the Paystack window (test or live keys from your dashboard).",
+    fundPaymentLabel: "Honeymoon fund",
     amountPresetCsv: "200,500,1000",
     payCurrencyCode: "GHS",
     contributeEmailLabel: "Email (for receipt)",
@@ -612,6 +616,58 @@ function repairMapTilerInaccessibleDemoMap(merged: WeddingSiteContent): { conten
 }
 
 /** Retired GH₵2,500 / GH₵5,000 tiers from older editor saves. */
+/** Migrate RSVP poster from HTML fields to plain-text lines (no raw tags on the black card). */
+function repairRsvpPosterPlainText(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const r = merged.rsvp;
+  if (!r) return { content: merged, didRepair: false };
+  let didRepair = false;
+  const next = { ...r };
+
+  const legacy = r as typeof r & { posterTitleHtml?: string; posterStampBottom?: string };
+  const html = typeof legacy.posterTitleHtml === "string" ? legacy.posterTitleHtml : "";
+  if (!r.posterTitleLine1?.trim() && html.trim()) {
+    const emMatch = html.match(/<em[^>]*>(.*?)<\/em>/i);
+    const em = emMatch ? stripToPlainText(emMatch[1]) : "";
+    const withoutEm = html.replace(/<em[^>]*>.*?<\/em>/gi, em ? ` ${em}` : "");
+    const plain = stripToPlainText(withoutEm);
+    const lines = plain.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    next.posterTitleLine1 = lines[0] || "The pleasure";
+    const secondLine = lines.slice(1).join(" ").trim();
+    if (em && secondLine.endsWith(em)) {
+      next.posterTitleLine2 = secondLine.slice(0, -em.length).trim() || "of your";
+      next.posterTitleEm = em;
+    } else {
+      next.posterTitleLine2 = secondLine || "of your";
+      next.posterTitleEm = em || "company";
+    }
+    didRepair = true;
+  }
+
+  const bottom = typeof legacy.posterStampBottom === "string" ? legacy.posterStampBottom : "";
+  if (!r.posterStampLine?.trim() && bottom.trim()) {
+    next.posterStampLine = stripToPlainText(bottom);
+    didRepair = true;
+  }
+
+  for (const key of [
+    "posterTitleLine1",
+    "posterTitleLine2",
+    "posterTitleEm",
+    "posterBody",
+    "posterStampTop",
+    "posterStampLine",
+  ] as const) {
+    const v = next[key];
+    if (typeof v === "string" && /<[^>]+>/.test(v)) {
+      next[key] = stripToPlainText(v);
+      didRepair = true;
+    }
+  }
+
+  if (!didRepair) return { content: merged, didRepair: false };
+  return { content: { ...merged, rsvp: next }, didRepair: true };
+}
+
 function repairRegistryAmountPresets(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
   const exclude = new Set([2500, 5000]);
   const csv = merged.registry?.amountPresetCsv;
@@ -675,6 +731,7 @@ function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSite
     repairLegacyAdaezeInContent,
     repairAdminPinIfEmpty,
     repairWeddingDateDerived,
+    repairRsvpPosterPlainText,
     repairRegistryAmountPresets,
     repairMapTilerInaccessibleDemoMap,
   ];

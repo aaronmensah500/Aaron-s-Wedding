@@ -1,5 +1,6 @@
 import { Fragment, useState, useMemo, useEffect } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
+import { useSiteEditorOptional } from "../../lib/siteEditor";
 import { Ph, Countdown } from "./Core";
 import { downloadWeddingIcs } from "../../lib/calendar";
 import { deriveWeddingDateFormats } from "../../lib/weddingDateFormats";
@@ -168,12 +169,25 @@ export function Registry({ compact = false }: RegistryProps) {
             <div className={compact ? "registry-card__col registry-card__col--intro" : undefined}>
           <div className="registry-card__head">
             <div>
-              <div className="eyebrow">{reg.fundEyebrow}</div>
-              <h4>{reg.fundTitle}</h4>
+              <div className="eyebrow">
+                <EditableText value={reg.fundEyebrow} onChange={v => patchContent({ registry: { fundEyebrow: v } })} />
+              </div>
+              <h4>
+                <EditableText value={reg.fundTitle} onChange={v => patchContent({ registry: { fundTitle: v } })} />
+              </h4>
             </div>
-            <div className="mono" style={{ color: "var(--champagne)" }}>{reg.currencies}</div>
+            <div className="mono" style={{ color: "var(--champagne)" }}>
+              <EditableText value={reg.currencies} onChange={v => patchContent({ registry: { currencies: v } })} />
+            </div>
           </div>
-          <p className="section__lede registry-card__lede">{reg.fundBody}</p>
+          <p className="section__lede registry-card__lede">
+            <EditableText
+              value={reg.fundBody}
+              onChange={v => patchContent({ registry: { fundBody: v } })}
+              multiline
+              as="span"
+            />
+          </p>
 
           <div className="contribution-amts">
             {presets.map(p => (
@@ -264,7 +278,13 @@ export function Registry({ compact = false }: RegistryProps) {
             <div>
               <div className="num">Paystack · {currency}</div>
               <div className="meta">
-                <div><div style={{ opacity: 0.5, marginBottom: 4 }}>To</div>Honeymoon fund</div>
+                <div>
+                  <div style={{ opacity: 0.5, marginBottom: 4 }}>To</div>
+                  <EditableText
+                    value={(reg.fundPaymentLabel as string) || "Honeymoon fund"}
+                    onChange={v => patchContent({ registry: { fundPaymentLabel: v } })}
+                  />
+                </div>
                 <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Date</div>{weddingDotDate}</div>
                 <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Amount</div>{effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"}</div>
               </div>
@@ -307,8 +327,12 @@ export function Registry({ compact = false }: RegistryProps) {
           <article className="registry-card qr-card">
             <div className="registry-card__head">
               <div>
-                <div className="eyebrow">{reg.qrEyebrow}</div>
-                <h4>{reg.qrTitle}</h4>
+                <div className="eyebrow">
+                  <EditableText value={reg.qrEyebrow} onChange={v => patchContent({ registry: { qrEyebrow: v } })} />
+                </div>
+                <h4>
+                  <EditableText value={reg.qrTitle} onChange={v => patchContent({ registry: { qrTitle: v } })} />
+                </h4>
               </div>
             </div>
             <div className="qr-block">
@@ -316,7 +340,9 @@ export function Registry({ compact = false }: RegistryProps) {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--muted)" }}>
               <span>{qrHostHint || "—"}</span>
-              <span style={{ color: "var(--champagne)" }}>{reg.qrHint}</span>
+              <span style={{ color: "var(--champagne)" }}>
+                <EditableText value={reg.qrHint} onChange={v => patchContent({ registry: { qrHint: v } })} />
+              </span>
             </div>
           </article>
         ) : null}
@@ -437,6 +463,7 @@ function tpl(str: string, map: Record<string, string>) {
 
 export function GuestExperience() {
   const { content, patchContent } = useWeddingContent();
+  const editor = useSiteEditorOptional();
   const inv = content.invitation || {};
   const name = inv.guestFirstName || "Guest";
   const last = (inv.guestLastName as string | undefined) || "";
@@ -466,7 +493,18 @@ export function GuestExperience() {
             <EditableText value={inv.titleLine2} onChange={v => patchContent({ invitation: { titleLine2: v } })} />
           </h2>
         </div>
-        <p className="section__lede">{lede}</p>
+        {editor?.isEditing ? (
+          <EditableText
+            className="section__lede"
+            value={inv.ledeTemplate}
+            onChange={v => patchContent({ invitation: { ledeTemplate: v } })}
+            multiline
+            as="p"
+            placeholder="Use {{name}} for the guest first name"
+          />
+        ) : (
+          <p className="section__lede">{lede}</p>
+        )}
       </div>
 
       <div className="guest__grid reveal-stagger">
@@ -475,8 +513,12 @@ export function GuestExperience() {
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 14h3M14 18h3M18 21h3M21 17v4"/></svg>
           </div>
           <div>
-            <h4>{inv.card1Title}</h4>
-            <p>{inv.card1Body}</p>
+            <h4>
+              <EditableText value={inv.card1Title} onChange={v => patchContent({ invitation: { card1Title: v } })} />
+            </h4>
+            <p>
+              <EditableText value={inv.card1Body} onChange={v => patchContent({ invitation: { card1Body: v } })} multiline as="span" />
+            </p>
           </div>
           <div className="guest-card__qr">
             <div className="guest-card__qr-frame">
@@ -494,8 +536,12 @@ export function GuestExperience() {
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="6" cy="9" r="1.5"/><circle cx="18" cy="9" r="1.5"/><circle cx="9" cy="16" r="1.5"/><circle cx="15" cy="16" r="1.5"/></svg>
           </div>
           <div>
-            <h4>{inv.card2Title}</h4>
-            <p>{inv.card2Body}</p>
+            <h4>
+              <EditableText value={inv.card2Title} onChange={v => patchContent({ invitation: { card2Title: v } })} />
+            </h4>
+            <p>
+              <EditableText value={inv.card2Body} onChange={v => patchContent({ invitation: { card2Body: v } })} multiline as="span" />
+            </p>
           </div>
           <div className="seating-preview"><SeatingMap /></div>
         </article>
@@ -505,12 +551,24 @@ export function GuestExperience() {
             <svg viewBox="0 0 24 24"><path d="M9 11H5a2 2 0 0 0-2 2v7h18v-7a2 2 0 0 0-2-2h-4"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>
           </div>
           <div>
-            <h4>{inv.card3Title}</h4>
-            <p>{inv.card3Body}</p>
+            <h4>
+              <EditableText value={inv.card3Title} onChange={v => patchContent({ invitation: { card3Title: v } })} />
+            </h4>
+            <p>
+              <EditableText value={inv.card3Body} onChange={v => patchContent({ invitation: { card3Body: v } })} multiline as="span" />
+            </p>
           </div>
           <div className="guest-card__rsvp">
-            <a href={SITE_PATHS.rsvp} className="btn btn--gold" style={{ width: "100%", justifyContent: "center" }}>
-              {inv.card3CtaLabel} <span className="arrow">→</span>
+            <a
+              href={SITE_PATHS.rsvp}
+              className="btn btn--gold"
+              style={{ width: "100%", justifyContent: "center" }}
+              onClick={e => {
+                if (editor?.isEditing) e.preventDefault();
+              }}
+            >
+              <EditableText value={inv.card3CtaLabel} onChange={v => patchContent({ invitation: { card3CtaLabel: v } })} />{" "}
+              <span className="arrow">→</span>
             </a>
           </div>
         </article>
@@ -520,13 +578,28 @@ export function GuestExperience() {
             <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 4l8 7 8-7"/></svg>
           </div>
           <div>
-            <h4>{inv.card4Title}</h4>
-            <p style={{ fontFamily: "var(--script)", fontSize: 22, lineHeight: 1.2, color: "var(--charcoal)" }}>
-              {quote}
-            </p>
+            <h4>
+              <EditableText value={inv.card4Title} onChange={v => patchContent({ invitation: { card4Title: v } })} />
+            </h4>
+            {editor?.isEditing ? (
+              <EditableText
+                style={{ fontFamily: "var(--script)", fontSize: 22, lineHeight: 1.2, color: "var(--charcoal)" }}
+                value={inv.welcomeQuoteTemplate}
+                onChange={v => patchContent({ invitation: { welcomeQuoteTemplate: v } })}
+                multiline
+                as="p"
+                placeholder="Use {{name}} for the guest first name"
+              />
+            ) : (
+              <p style={{ fontFamily: "var(--script)", fontSize: 22, lineHeight: 1.2, color: "var(--charcoal)" }}>
+                {quote}
+              </p>
+            )}
           </div>
           <div className="preview">
-            <span>{inv.card4Footer}</span>
+            <span>
+              <EditableText value={inv.card4Footer} onChange={v => patchContent({ invitation: { card4Footer: v } })} />
+            </span>
             <span style={{ color: "var(--champagne)" }}>♡</span>
           </div>
         </article>
