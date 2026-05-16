@@ -18,6 +18,69 @@ import { contentPatchesFromWeddingDate } from "./weddingDateFormats";
 /** Current persisted key. v1 is read once and migrated so repo default name/venue updates are not stuck under old merges. */
 const WEDDING_SITE_STORAGE_KEY = "wedding-site-content-v2";
 const WEDDING_SITE_STORAGE_KEY_LEGACY_V1 = "wedding-site-content-v1";
+/** When the editor last changed copy in this browser (ISO). Compared to Supabase `updated_at` on load. */
+const WEDDING_SITE_LOCAL_EDITED_AT_KEY = "wedding-site-content-local-edited-at";
+
+function parseContentTimestamp(iso: string | null | undefined): number {
+  if (!iso?.trim()) return 0;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? 0 : t;
+}
+
+/** Prefer published copy on load unless this browser has newer unpublished edits. */
+export function shouldApplyPublishedSiteContent(
+  localEditedAt: string | null | undefined,
+  publishedUpdatedAt: string | null | undefined
+): boolean {
+  const publishedAt = parseContentTimestamp(publishedUpdatedAt);
+  if (!publishedAt) return true;
+  const localAt = parseContentTimestamp(localEditedAt);
+  if (!localAt) return true;
+  return publishedAt >= localAt;
+}
+
+/** True when saved browser copy disagrees with published (e.g. date changed before publish). */
+export function localDraftDiffersFromPublished(
+  local: WeddingSiteContent,
+  published: WeddingSiteContent
+): boolean {
+  const localIso = local.site?.weddingDateIso ?? "";
+  const publishedIso = published.site?.weddingDateIso ?? "";
+  if (localIso && publishedIso && localIso !== publishedIso) return true;
+  const derived = contentPatchesFromWeddingDate(localIso);
+  if (derived && local.hero?.dateDisplay && local.hero.dateDisplay !== derived.hero.dateDisplay) {
+    return true;
+  }
+  return false;
+}
+
+function readLocalEditedAt(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = localStorage.getItem(WEDDING_SITE_LOCAL_EDITED_AT_KEY);
+    return v?.trim() ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function markLocalContentEdited(at = new Date().toISOString()) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(WEDDING_SITE_LOCAL_EDITED_AT_KEY, at);
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearLocalEditedAt() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(WEDDING_SITE_LOCAL_EDITED_AT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 function isPlainObject(x: unknown): x is Record<string, unknown> {
   return x != null && typeof x === "object" && !Array.isArray(x);
@@ -690,6 +753,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
   const [publishError, setPublishError] = useState("");
   const contentRef = useRef(content);
   contentRef.current = content;
+  const initialContentRef = useRef(content);
 
   const publishForEveryone = useCallback(async (pin: string) => {
     if (!import.meta.env.PUBLIC_SUPABASE_URL?.trim()) {
@@ -703,6 +767,8 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     if (result.ok) {
       setPublishStatus("saved");
       setPublishError("");
+      const published = await fetchPublishedSiteContent();
+      markLocalContentEdited(published?.updatedAt ?? new Date().toISOString());
       return { ok: true as const };
     }
     setPublishStatus("error");
@@ -720,9 +786,18 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
         let merged = deepMerge(defaults, published.content) as WeddingSiteContent;
         const repaired = applyContentRepairs(merged);
         merged = repaired.content;
-        setContent(merged);
-        persistLocalContent(merged);
-        setRevision(r => r + 1);
+        const localEditedAt = readLocalEditedAt();
+        let applyPublished = shouldApplyPublishedSiteContent(localEditedAt, published.updatedAt);
+        if (applyPublished && !localEditedAt && localDraftDiffersFromPublished(initialContentRef.current, merged)) {
+          applyPublished = false;
+          markLocalContentEdited();
+        }
+        if (applyPublished) {
+          setContent(merged);
+          persistLocalContent(merged);
+          if (published.updatedAt) markLocalContentEdited(published.updatedAt);
+          setRevision(r => r + 1);
+        }
       }
       if (!cancelled) setContentHydrated(true);
     })();
@@ -736,6 +811,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
       const partial = typeof arg === "function" ? arg(prev) : arg;
       const next = deepMerge(prev, partial) as typeof WEDDING_CONTENT_DEFAULT;
       persistLocalContent(next);
+      markLocalContentEdited();
       return next;
     });
     setPublishStatus(s => (s === "saved" ? "idle" : s));
@@ -750,6 +826,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     const repaired = applyContentRepairs(next);
     setContent(repaired.content);
     persistLocalContent(repaired.content);
+    markLocalContentEdited();
     setPublishStatus("idle");
     setPublishError("");
     setRevision(r => r + 1);
@@ -761,9 +838,11 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.removeItem(WEDDING_SITE_STORAGE_KEY);
       localStorage.removeItem(WEDDING_SITE_STORAGE_KEY_LEGACY_V1);
+      clearLocalEditedAt();
     } catch {
       /* ignore */
     }
+    markLocalContentEdited();
     setPublishStatus("idle");
     setPublishError("");
     setRevision(r => r + 1);

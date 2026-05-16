@@ -26,7 +26,9 @@ export function AdminWeddingDateSettings() {
     <fieldset className="adm-fieldset">
       <legend>Wedding date</legend>
       <p className="adm-hint" style={{ margin: 0 }}>
-        Pick the day and ceremony time — Roman hero line, nav stamp, and countdown update automatically.
+        Pick the day and ceremony time — Roman hero line, nav stamp, and countdown update on this device
+        right away. Anyone opening a shared link only sees the new date after you use{" "}
+        <strong>Save for everyone</strong> in the editor toolbar.
       </p>
       <label className="adm-field">
         <span className="adm-field__lbl">Date</span>
