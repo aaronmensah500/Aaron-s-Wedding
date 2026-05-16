@@ -561,11 +561,18 @@ body::before {
 .adm-modal__card {
   width: 100%;
   max-width: 400px;
+  max-height: min(90vh, 90dvh);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
   background: var(--warm-white);
   border: 1px solid var(--hairline);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 28px;
   box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+}
+.adm-modal__card .adm-hint {
+  overflow-wrap: anywhere;
 }
 .adm-modal__title { margin: 0 0 12px; font-family: var(--serif); font-weight: 400; font-size: 26px; }
 .adm-modal__actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
@@ -857,7 +864,8 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   left: 0;
   top: calc(100% + 8px);
   min-width: min(320px, 90vw);
-  max-width: 360px;
+  max-width: min(360px, calc(100vw - 24px));
+  box-sizing: border-box;
   padding: 14px;
   background: var(--warm-white);
   border: 1px solid var(--hairline);
@@ -897,12 +905,14 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   justify-content: center;
   gap: 8px;
   max-width: calc(100vw - 32px);
+  box-sizing: border-box;
   padding: 10px 14px;
-  border-radius: 999px;
+  border-radius: 10px;
   border: 1px solid var(--hairline);
   background: rgba(246, 242, 234, 0.96);
   backdrop-filter: blur(16px);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
 }
 .adm-toolbar__status {
   font-size: 11px;
@@ -910,6 +920,7 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   max-width: 200px;
   line-height: 1.3;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .adm-sheet {
   position: fixed;
@@ -929,11 +940,13 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
 .adm-sheet__panel {
   width: 100%;
   max-width: 480px;
-  max-height: min(85vh, 720px);
+  max-height: min(85vh, 85dvh);
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
   background: var(--warm-white);
   border: 1px solid var(--hairline);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 20px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
 }
@@ -948,4 +961,88 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   font-family: var(--serif);
   font-size: 22px;
   font-weight: 400;
+}
+
+@media (max-width: 640px) {
+  .adm-modal {
+    padding: 12px;
+    align-items: center;
+  }
+  .adm-modal__card {
+    padding: 20px 16px;
+    border-radius: 8px;
+    max-height: calc(100dvh - 24px);
+  }
+  .adm-modal__title {
+    font-size: 22px;
+  }
+  .adm-modal__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .adm-modal__actions .adm-btn {
+    width: 100%;
+  }
+  .adm-toolbar {
+    left: 12px;
+    right: 12px;
+    transform: none;
+    width: auto;
+    max-width: none;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    padding: 10px;
+    gap: 6px;
+    border-radius: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    max-height: min(42vh, 280px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .adm-toolbar__status {
+    flex: 1 1 100%;
+    max-width: none;
+    width: 100%;
+    text-align: left;
+    padding: 0 2px 4px;
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 2px;
+  }
+  .adm-toolbar .adm-btn--sm {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+  .adm-sheet {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .adm-sheet__panel {
+    max-width: 100%;
+    border-radius: 12px 12px 0 0;
+    padding: 16px 14px max(16px, env(safe-area-inset-bottom));
+    max-height: min(88dvh, 720px);
+  }
+  .adm-sheet__hd {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .adm-sheet__title {
+    font-size: 20px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .editable-html__popover {
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .editable-html__textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 }
