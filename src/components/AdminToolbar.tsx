@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useWeddingContent, WEDDING_CONTENT_DEFAULT, validateSiteContentImport } from "../lib/weddingContent";
 import { useSiteEditor } from "../lib/siteEditor";
 import { AdminImageUpload } from "./AdminImageUpload";
+import { AdminWeddingDateSettings } from "./AdminWeddingDateSettings";
 
 type SheetId = null | "sections" | "site" | "backup" | "advanced" | "arrays";
 
@@ -372,11 +373,7 @@ export function AdminToolbar() {
             {sheet === "arrays" ? <AdminArraysPanel /> : null}
             {sheet === "site" ? (
               <div className="adm-stack">
-                <AdminTextField
-                  label="Countdown date (ISO)"
-                  value={content.site?.weddingDateIso}
-                  onChange={v => patchContent({ site: { weddingDateIso: v } })}
-                />
+                <AdminWeddingDateSettings />
                 <label className="adm-check">
                   <input
                     type="checkbox"
@@ -386,7 +383,6 @@ export function AdminToolbar() {
                   <span>Require PIN</span>
                 </label>
                 <AdminTextField label="Editor PIN" value={content.admin?.pin} onChange={v => patchContent({ admin: { pin: v } })} />
-                <AdminTextField label="Nav mono line" value={content.nav?.monoId} onChange={v => patchContent({ nav: { monoId: v } })} />
               </div>
             ) : null}
             {sheet === "advanced" ? <AdminAdvancedPanel /> : null}

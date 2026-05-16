@@ -2,6 +2,7 @@ import { Fragment, useState, useMemo, useEffect } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
 import { Ph, Countdown } from "./Core";
 import { downloadWeddingIcs } from "../../lib/calendar";
+import { deriveWeddingDateFormats } from "../../lib/weddingDateFormats";
 import { QrCodeBlock } from "./QrCodeBlock";
 import { SITE_PATHS } from "../../lib/sitePages";
 import { buildSiteDeepLink } from "../../lib/siteUrl";
@@ -35,6 +36,8 @@ type RegistryProps = { compact?: boolean };
 export function Registry({ compact = false }: RegistryProps) {
   const { content, patchContent } = useWeddingContent();
   const reg = content.registry || {};
+  const weddingDotDate =
+    deriveWeddingDateFormats(content.site?.weddingDateIso)?.dotDateShort ?? "12 · 12 · 26";
   const presets = useMemo(
     () => parseAmountPresets(reg.amountPresetCsv as string | undefined, [200, 500, 1000]),
     [reg.amountPresetCsv]
@@ -262,7 +265,7 @@ export function Registry({ compact = false }: RegistryProps) {
               <div className="num">Paystack · {currency}</div>
               <div className="meta">
                 <div><div style={{ opacity: 0.5, marginBottom: 4 }}>To</div>Honeymoon fund</div>
-                <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Date</div>12 · 12 · 26</div>
+                <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Date</div>{weddingDotDate}</div>
                 <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Amount</div>{effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"}</div>
               </div>
             </div>
@@ -384,8 +387,8 @@ export function Livestream() {
             ))}
           </div>
           <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" className="btn btn--gold" style={{ flex: 1 }} onClick={() => downloadWeddingIcs("aaron-princess-livestream-reminder.ics")}>{st.remindLabel} <span className="arrow">→</span></button>
-            <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={() => downloadWeddingIcs()}>{st.calendarLabel}</button>
+            <button type="button" className="btn btn--gold" style={{ flex: 1 }} onClick={() => downloadWeddingIcs("aaron-princess-livestream-reminder.ics", content.site?.weddingDateIso)}>{st.remindLabel} <span className="arrow">→</span></button>
+            <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={() => downloadWeddingIcs(undefined, content.site?.weddingDateIso)}>{st.calendarLabel}</button>
           </div>
         </aside>
       </div>

@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import { fetchPublishedSiteContent, publishSiteContent } from "./siteContentApi";
+import { contentPatchesFromWeddingDate } from "./weddingDateFormats";
 
 /** Current persisted key. v1 is read once and migrated so repo default name/venue updates are not stuck under old merges. */
 const WEDDING_SITE_STORAGE_KEY = "wedding-site-content-v2";
@@ -573,6 +574,27 @@ function repairRegistryAmountPresets(merged: WeddingSiteContent): { content: Wed
 }
 
 /** Empty editor PIN in localStorage made unlock impossible; restore default from shipped content. */
+function repairWeddingDateDerived(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const iso = merged.site?.weddingDateIso;
+  if (!iso?.trim()) return { content: merged, didRepair: false };
+  const patches = contentPatchesFromWeddingDate(iso);
+  if (!patches) return { content: merged, didRepair: false };
+  if (
+    merged.hero?.dateDisplay === patches.hero.dateDisplay &&
+    merged.nav?.monoId === patches.nav.monoId
+  ) {
+    return { content: merged, didRepair: false };
+  }
+  return {
+    content: {
+      ...merged,
+      hero: { ...merged.hero, dateDisplay: patches.hero.dateDisplay },
+      nav: { ...merged.nav, monoId: patches.nav.monoId },
+    },
+    didRepair: true,
+  };
+}
+
 function repairAdminPinIfEmpty(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
   const pin = merged.admin?.pin;
   const s = pin == null ? "" : String(pin).trim();
@@ -593,6 +615,7 @@ function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSite
     repairDetailsIfMistakenNigeriaSnapshot,
     repairLegacyAdaezeInContent,
     repairAdminPinIfEmpty,
+    repairWeddingDateDerived,
     repairRegistryAmountPresets,
     repairMapTilerInaccessibleDemoMap,
   ];

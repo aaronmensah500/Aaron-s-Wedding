@@ -6,6 +6,7 @@ import { SectionHead } from "../editable/SectionTitle";
 import { useSiteEditorOptional } from "../../lib/siteEditor";
 import { IMAGE_UPLOAD_ACCEPT, useAdminImageUpload } from "../../lib/useAdminImageUpload";
 import { downloadWeddingIcs } from "../../lib/calendar";
+import { heroDateDisplay, navMonoId } from "../../lib/weddingDateFormats";
 import { isSafeHttpsAssetUrl } from "../../lib/mapAssetUrl";
 import {
   extractMapTilerMapIdFromEmbedSrc,
@@ -99,6 +100,7 @@ export function Nav({ currentPage }: { currentPage: SitePageId }) {
   const brandLeft = (h.nameLine1 || "A").trim().charAt(0) || "A";
   const brandRight = (h.nameLine2 || "P").trim().charAt(0) || "P";
   const links = buildNavLinks(sec, content.travelLogistics?.navLabel);
+  const navMono = navMonoId(content.site?.weddingDateIso, content.nav?.monoId);
   const onHome = currentPage === "home";
 
   useEffect(() => {
@@ -118,12 +120,7 @@ export function Nav({ currentPage }: { currentPage: SitePageId }) {
     <nav className={`nav ${scrolled || !onHome ? "nav--solid" : ""}${menuOpen ? " nav--menu-open" : ""}`}>
       <a href={SITE_PATHS.home} className="nav__brand">
         <span className="serif" style={{ fontSize: 22 }}>{brandLeft}<span style={{ fontFamily: "var(--script)", color: "var(--champagne)", margin: "0 4px" }}>&amp;</span>{brandRight}</span>
-        <span className="mono-id">
-          <EditableText
-            value={content.nav?.monoId || "No. 12 · 12 · 26"}
-            onChange={v => patchContent({ nav: { monoId: v } })}
-          />
-        </span>
+        <span className="mono-id">{navMono}</span>
       </a>
       <button
         type="button"
@@ -234,6 +231,7 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
   const { content, patchContent } = useWeddingContent();
   const editor = useSiteEditorOptional();
   const h = content.hero || {};
+  const dateLine = heroDateDisplay(content.site?.weddingDateIso, h.dateDisplay);
   const sec = content.sections || {};
   const bgRef = useRef<HTMLDivElement | null>(null);
   const bgUpload = useAdminImageUpload(url => patchContent({ hero: { bgImageUrl: url } }));
@@ -315,7 +313,7 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
             <EditableText value={h.savingTheDate} onChange={v => patchContent({ hero: { savingTheDate: v } })} />
           </div>
           <div className="hero__date">
-            <EditableText value={h.dateDisplay} onChange={v => patchContent({ hero: { dateDisplay: v } })} />
+            {dateLine}
           </div>
           <div className="hero__loc">
             <EditableText value={h.venueLine} onChange={v => patchContent({ hero: { venueLine: v } })} />
@@ -649,7 +647,11 @@ export function Details() {
               <EditableText value={d.itineraryTitle} onChange={v => patchContent({ details: { itineraryTitle: v } })} />
             </h3>
           </div>
-          <button type="button" className="btn btn--ghost" onClick={() => downloadWeddingIcs()}>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => downloadWeddingIcs(undefined, content.site?.weddingDateIso)}
+          >
             <EditableText value={d.addCalendarLabel || "Add to calendar"} onChange={v => patchContent({ details: { addCalendarLabel: v } })} />
             {" "}<span className="arrow">→</span>
           </button>

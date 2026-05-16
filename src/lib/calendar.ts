@@ -1,14 +1,36 @@
 /** Download a single-event .ics for the wedding (Apple Calendar, Google import, Outlook). */
-export function downloadWeddingIcs(filename = "aaron-princess-wedding.ics") {
+export function downloadWeddingIcs(
+  filename = "aaron-princess-wedding.ics",
+  startInput?: Date | string | null
+) {
   const pad = (n: number) => String(n).padStart(2, "0");
   const stamp = (d: Date) =>
     `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
   const now = new Date();
-  /* 4:30 PM local Accra (GMT / Africa/Accra) → 16:30 UTC */
-  const start = new Date(Date.UTC(2026, 11, 12, 16, 30, 0));
-  const end = new Date(Date.UTC(2026, 11, 13, 4, 0, 0));
+  const parsed =
+    startInput instanceof Date
+      ? startInput
+      : typeof startInput === "string"
+        ? new Date(startInput)
+        : null;
+  const start =
+    parsed && !Number.isNaN(parsed.getTime())
+      ? new Date(
+          Date.UTC(
+            parsed.getUTCFullYear(),
+            parsed.getUTCMonth(),
+            parsed.getUTCDate(),
+            parsed.getUTCHours(),
+            parsed.getUTCMinutes(),
+            0
+          )
+        )
+      : new Date(Date.UTC(2026, 11, 12, 16, 30, 0));
+  const end = new Date(start.getTime() + 11.5 * 60 * 60 * 1000);
   const fmt = (d: Date) => stamp(d);
-  const uid = `aaron-princess-20261212@${typeof window !== "undefined" ? window.location.hostname || "wedding" : "wedding"}`;
+  const ymd =
+    `${start.getUTCFullYear()}${pad(start.getUTCMonth() + 1)}${pad(start.getUTCDate())}`;
+  const uid = `aaron-princess-${ymd}@${typeof window !== "undefined" ? window.location.hostname || "wedding" : "wedding"}`;
   const siteLink =
     (import.meta.env.PUBLIC_SITE_URL || "").trim().replace(/\/$/, "") ||
     (typeof window !== "undefined" ? window.location.origin : "");
