@@ -1,5 +1,7 @@
 import { useWeddingContent } from "../../lib/weddingContent";
 import { SITE_PATHS } from "../../lib/sitePages";
+import { EditableText } from "../editable/EditableText";
+import { useSiteEditorOptional } from "../../lib/siteEditor";
 
 const HIGHLIGHT_IDS = new Set(["story", "rsvp", "registry"]);
 
@@ -20,12 +22,14 @@ function cardEnabled(id: string, sec: Record<string, boolean | undefined>): bool
 }
 
 export function HomeHub() {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
+  const editor = useSiteEditorOptional();
   const sec = content.sections || {};
   const hub = content.homeHub || {};
+  const rawCards = hub.cards || [];
 
-  const cards = (hub.cards || [])
-    .map(c => {
+  const cards = rawCards
+    .map((c, originalIndex) => {
       const id = String(c.id || "");
       if (HIGHLIGHT_IDS.has(id)) return null;
       const path = SITE_PATHS[id as keyof typeof SITE_PATHS];
@@ -36,6 +40,7 @@ export function HomeHub() {
       }
       return {
         id,
+        originalIndex,
         href: path,
         eyebrow: c.eyebrow || "",
         title,
@@ -47,25 +52,59 @@ export function HomeHub() {
 
   if (cards.length === 0) return null;
 
+  const patchCard = (originalIndex: number, partial: Record<string, string>) => {
+    const updated = [...rawCards];
+    updated[originalIndex] = { ...updated[originalIndex], ...partial };
+    patchContent({ homeHub: { cards: updated } });
+  };
+
   return (
     <section className="section section--beige home-hub" aria-labelledby="home-hub-more-title">
-      <div className="section__head reveal">
+      <div className="section__head reveal in">
         <div>
           <div className="eyebrow">
-            {hub.moreEyebrow || "More"} <span className="dot" />
+            <EditableText
+              value={hub.moreEyebrow || "More"}
+              onChange={v => patchContent({ homeHub: { moreEyebrow: v } })}
+            />{" "}
+            <span className="dot" />
           </div>
           <h2 id="home-hub-more-title" className="section__title home-hub__more-title">
-            {hub.moreTitle || "Plan the weekend"}
+            <EditableText
+              value={hub.moreTitle || "Plan the weekend"}
+              onChange={v => patchContent({ homeHub: { moreTitle: v } })}
+            />
           </h2>
         </div>
       </div>
 
       <div className="home-hub__grid reveal-stagger">
         {cards.map(card => (
-          <a key={card.id} href={card.href} className="home-hub__card">
-            <span className="home-hub__eyebrow">{card.eyebrow}</span>
-            <h3 className="home-hub__title">{card.title}</h3>
-            <p className="home-hub__lede">{card.lede}</p>
+          <a
+            key={card.id}
+            href={card.href}
+            className="home-hub__card"
+            onClick={e => editor?.isEditing && e.preventDefault()}
+          >
+            <span className="home-hub__eyebrow">
+              <EditableText
+                value={card.eyebrow}
+                onChange={v => patchCard(card.originalIndex, { eyebrow: v })}
+              />
+            </span>
+            <h3 className="home-hub__title">
+              <EditableText
+                value={card.title}
+                onChange={v => patchCard(card.originalIndex, { title: v })}
+              />
+            </h3>
+            <p className="home-hub__lede">
+              <EditableText
+                value={card.lede}
+                onChange={v => patchCard(card.originalIndex, { lede: v })}
+                multiline
+              />
+            </p>
             <span className="home-hub__cta">
               Open <span className="arrow">→</span>
             </span>

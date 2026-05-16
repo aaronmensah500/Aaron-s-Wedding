@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { authorizeAdminBearer } from "../../../lib/adminPinServer";
 import { getServiceSupabase } from "../../../lib/supabase/service";
 import { jsonError, jsonOk } from "../../../lib/api/json";
 
@@ -9,14 +10,9 @@ const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
 
 export const POST: APIRoute = async ({ request }) => {
-  const uploadToken = import.meta.env.PUBLIC_ADMIN_UPLOAD_TOKEN;
-  if (!uploadToken) {
-    return jsonError("UPLOAD_NOT_CONFIGURED", 503, "Image upload is not configured on this deployment.");
-  }
-
   const auth = (request.headers.get("Authorization") ?? "").trim();
-  if (auth !== `Bearer ${uploadToken}`) {
-    return jsonError("UNAUTHORIZED", 401, "Invalid upload token.");
+  if (!(await authorizeAdminBearer(auth))) {
+    return jsonError("UNAUTHORIZED", 401, "Unlock the editor with your PIN, then try again.");
   }
 
   let formData: FormData;

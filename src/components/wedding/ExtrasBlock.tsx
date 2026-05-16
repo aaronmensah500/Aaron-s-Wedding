@@ -6,6 +6,8 @@ import { QrCodeBlock } from "./QrCodeBlock";
 import { SITE_PATHS } from "../../lib/sitePages";
 import { buildSiteDeepLink } from "../../lib/siteUrl";
 import { openPaystackInline, type PaystackCurrency } from "../../lib/paystack";
+import { EditableText } from "../editable/EditableText";
+import { SectionHead } from "../editable/SectionTitle";
 
 const PAYSTACK_CURRENCIES = new Set<string>(["GHS", "NGN", "USD", "ZAR", "KES", "XOF", "XAF"]);
 const REGISTRY_PRESET_EXCLUDE = new Set([2500, 5000]);
@@ -31,7 +33,7 @@ function pickPaystackCurrency(regCode: string | undefined): PaystackCurrency {
 type RegistryProps = { compact?: boolean };
 
 export function Registry({ compact = false }: RegistryProps) {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const reg = content.registry || {};
   const presets = useMemo(
     () => parseAmountPresets(reg.amountPresetCsv as string | undefined, [200, 500, 1000]),
@@ -148,13 +150,14 @@ export function Registry({ compact = false }: RegistryProps) {
 
   return (
     <section id="registry" className={`section${compact ? " section--beige registry--home" : ""}`}>
-      <div className="section__head reveal">
-        <div>
-          <div className="eyebrow">{reg.eyebrow} <span className="dot" /> {reg.eyebrowLabel}</div>
-          <h2 className="section__title">{reg.titleLine1}<em>{reg.titleEm}</em></h2>
-        </div>
-        <p className="section__lede">{reg.lede}</p>
-      </div>
+      <SectionHead
+        eyebrow={reg.eyebrow}
+        eyebrowLabel={reg.eyebrowLabel}
+        titleLine1={reg.titleLine1}
+        titleEm={reg.titleEm}
+        lede={reg.lede}
+        onPatch={p => patchContent({ registry: p })}
+      />
 
       <div className={`registry__grid reveal-stagger${compact ? " registry__grid--compact" : ""}`}>
         <article className={`registry-card${compact ? " registry-card--horizontal" : ""}`}>
@@ -331,7 +334,7 @@ export function Registry({ compact = false }: RegistryProps) {
 // LIVESTREAM
 // ============================================================
 export function Livestream() {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const st = content.stream || {};
   const countdownTarget = useMemo(() => {
     const d = new Date(content.site?.weddingDateIso);
@@ -341,13 +344,15 @@ export function Livestream() {
   const sched = st.schedule || [];
   return (
     <section id="stream" className="section section--dark">
-      <div className="section__head reveal">
-        <div>
-          <div className="eyebrow" style={{ color: "rgba(246,242,234,0.6)" }}>{st.eyebrow} <span className="dot" /> {st.eyebrowLabel}</div>
-          <h2 className="section__title" style={{ color: "var(--ivory)" }}>{st.titleLine1}<em>{st.titleEm}</em><br />{st.titleLine2}</h2>
-        </div>
-        <p className="section__lede">{st.lede}</p>
-      </div>
+      <SectionHead
+        eyebrow={st.eyebrow}
+        eyebrowLabel={st.eyebrowLabel}
+        titleLine1={st.titleLine1}
+        titleEm={st.titleEm}
+        titleLine2={st.titleLine2}
+        lede={st.lede}
+        onPatch={p => patchContent({ stream: p })}
+      />
 
       <div className="stream__wrap reveal">
         <div className="stream__player">
@@ -428,7 +433,7 @@ function tpl(str: string, map: Record<string, string>) {
 }
 
 export function GuestExperience() {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const inv = content.invitation || {};
   const name = inv.guestFirstName || "Guest";
   const last = (inv.guestLastName as string | undefined) || "";
@@ -443,10 +448,20 @@ export function GuestExperience() {
 
   return (
     <section id="invitation" className="section section--beige">
-      <div className="section__head reveal">
+      <div className="section__head reveal in">
         <div>
-          <div className="eyebrow">{inv.eyebrow} <span className="dot" /> {inv.eyebrowLabel}</div>
-          <h2 className="section__title">{inv.titleLine1}<em>{inv.titleEm}</em>,<br />{inv.titleLine2}</h2>
+          <div className="eyebrow">
+            <EditableText value={inv.eyebrow} onChange={v => patchContent({ invitation: { eyebrow: v } })} />{" "}
+            <span className="dot" />{" "}
+            <EditableText value={inv.eyebrowLabel} onChange={v => patchContent({ invitation: { eyebrowLabel: v } })} />
+          </div>
+          <h2 className="section__title">
+            <EditableText value={inv.titleLine1} onChange={v => patchContent({ invitation: { titleLine1: v } })} />
+            <em>
+              <EditableText value={inv.titleEm} onChange={v => patchContent({ invitation: { titleEm: v } })} />
+            </em>,<br />
+            <EditableText value={inv.titleLine2} onChange={v => patchContent({ invitation: { titleLine2: v } })} />
+          </h2>
         </div>
         <p className="section__lede">{lede}</p>
       </div>
@@ -521,18 +536,28 @@ export function GuestExperience() {
 // FOOTER
 // ============================================================
 export function Footer() {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const f = content.footer || {};
   const social = f.social || [];
   return (
     <footer className="footer">
       <div className="footer__glow" />
       <div style={{ position: "relative", maxWidth: 1280, margin: "0 auto" }}>
-        <div className="eyebrow" style={{ textAlign: "center", color: "rgba(246,242,234,0.5)" }}>{f.eyebrow}</div>
-        <h2 className="footer__signature">{f.signatureLine1} <span className="amp">&amp;</span> {f.signatureLine2}</h2>
-        <div className="footer__hash">{f.hash}</div>
+        <div className="eyebrow" style={{ textAlign: "center", color: "rgba(246,242,234,0.5)" }}>
+          <EditableText value={f.eyebrow} onChange={v => patchContent({ footer: { eyebrow: v } })} />
+        </div>
+        <h2 className="footer__signature">
+          <EditableText value={f.signatureLine1} onChange={v => patchContent({ footer: { signatureLine1: v } })} />{" "}
+          <span className="amp">&amp;</span>{" "}
+          <EditableText value={f.signatureLine2} onChange={v => patchContent({ footer: { signatureLine2: v } })} />
+        </h2>
+        <div className="footer__hash">
+          <EditableText value={f.hash} onChange={v => patchContent({ footer: { hash: v } })} />
+        </div>
         <div className="footer__row">
-          <div>{f.copyrightLine}</div>
+          <div>
+            <EditableText value={f.copyrightLine} onChange={v => patchContent({ footer: { copyrightLine: v } })} />
+          </div>
           <div className="footer__social">
             {social.map((s, i) => (
               <a key={i} href={s.href || "#"}>{s.label}</a>

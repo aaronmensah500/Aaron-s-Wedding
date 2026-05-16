@@ -1,5 +1,10 @@
 import { Fragment, useState, useEffect, useRef, useMemo, useCallback, useId, type CSSProperties } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
+import { EditableText } from "../editable/EditableText";
+import { EditableImage } from "../editable/EditableImage";
+import { SectionHead } from "../editable/SectionTitle";
+import { useSiteEditorOptional } from "../../lib/siteEditor";
+import { IMAGE_UPLOAD_ACCEPT, useAdminImageUpload } from "../../lib/useAdminImageUpload";
 import { downloadWeddingIcs } from "../../lib/calendar";
 import { isSafeHttpsAssetUrl } from "../../lib/mapAssetUrl";
 import {
@@ -88,7 +93,7 @@ export function Nav({ currentPage }: { currentPage: SitePageId }) {
   const scrolled = useScrolled(80);
   const menuId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const sec = content.sections || {};
   const h = content.hero || {};
   const brandLeft = (h.nameLine1 || "A").trim().charAt(0) || "A";
@@ -113,7 +118,12 @@ export function Nav({ currentPage }: { currentPage: SitePageId }) {
     <nav className={`nav ${scrolled || !onHome ? "nav--solid" : ""}${menuOpen ? " nav--menu-open" : ""}`}>
       <a href={SITE_PATHS.home} className="nav__brand">
         <span className="serif" style={{ fontSize: 22 }}>{brandLeft}<span style={{ fontFamily: "var(--script)", color: "var(--champagne)", margin: "0 4px" }}>&amp;</span>{brandRight}</span>
-        <span className="mono-id">{content.nav?.monoId || "No. 12 · 12 · 26"}</span>
+        <span className="mono-id">
+          <EditableText
+            value={content.nav?.monoId || "No. 12 · 12 · 26"}
+            onChange={v => patchContent({ nav: { monoId: v } })}
+          />
+        </span>
       </a>
       <button
         type="button"
@@ -221,10 +231,12 @@ export function Countdown({ light = true, targetDate }: { light?: boolean; targe
 }
 
 export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
+  const editor = useSiteEditorOptional();
   const h = content.hero || {};
   const sec = content.sections || {};
   const bgRef = useRef<HTMLDivElement | null>(null);
+  const bgUpload = useAdminImageUpload(url => patchContent({ hero: { bgImageUrl: url } }));
   const heroMediaStyle = h.bgImageUrl && String(h.bgImageUrl).trim()
     ? {
         backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(42,10,14,0.45) 100%), url(${h.bgImageUrl})`,
@@ -250,43 +262,93 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
         <div className="hero__vignette" />
         <div className="hero__grain" />
         <Particles count={28} />
+        {editor?.isEditing ? (
+          <>
+            <input
+              ref={bgUpload.inputRef}
+              type="file"
+              accept={IMAGE_UPLOAD_ACCEPT}
+              style={{ display: "none" }}
+              onChange={bgUpload.onInputChange}
+            />
+            <button
+              type="button"
+              className="hero__bg-upload"
+              disabled={bgUpload.busy || !bgUpload.canUpload}
+              aria-label={bgUpload.canUpload ? "Upload hero background" : "Hero upload unavailable"}
+              onClick={e => {
+                e.stopPropagation();
+                if (bgUpload.canUpload) bgUpload.pickFile();
+              }}
+            />
+            {bgUpload.busy ? <span className="hero__bg-upload-busy" aria-hidden /> : null}
+          </>
+        ) : null}
       </div>
 
       <div className="hero__eyebrow-row">
-        <span>{h.eyebrowLeft}</span>
+        <EditableText value={h.eyebrowLeft} onChange={v => patchContent({ hero: { eyebrowLeft: v } })} />
         <span>
-          {h.eyebrowRightBefore}
+          <EditableText value={h.eyebrowRightBefore} onChange={v => patchContent({ hero: { eyebrowRightBefore: v } })} />
           <span style={{ fontFamily: "var(--script)", color: "var(--champagne)" }}>&amp;</span>
-          {h.eyebrowRightAfter}
+          <EditableText value={h.eyebrowRightAfter} onChange={v => patchContent({ hero: { eyebrowRightAfter: v } })} />
         </span>
       </div>
 
       <div className="hero__inner">
         <h1 className="hero__title">
-          <span className="line"><span>{h.nameLine1}</span></span>
-          <span className="line"><span><i className="amp">&amp;</i>{h.nameLine2}</span></span>
+          <span className="line">
+            <span>
+              <EditableText value={h.nameLine1} onChange={v => patchContent({ hero: { nameLine1: v } })} />
+            </span>
+          </span>
+          <span className="line">
+            <span>
+              <i className="amp">&amp;</i>
+              <EditableText value={h.nameLine2} onChange={v => patchContent({ hero: { nameLine2: v } })} />
+            </span>
+          </span>
         </h1>
         <div className="hero__meta">
-          <div className="eyebrow"><span className="dot" />{h.savingTheDate}</div>
-          <div className="hero__date">{h.dateDisplay}</div>
-          <div className="hero__loc">{h.venueLine}</div>
+          <div className="eyebrow">
+            <span className="dot" />
+            <EditableText value={h.savingTheDate} onChange={v => patchContent({ hero: { savingTheDate: v } })} />
+          </div>
+          <div className="hero__date">
+            <EditableText value={h.dateDisplay} onChange={v => patchContent({ hero: { dateDisplay: v } })} />
+          </div>
+          <div className="hero__loc">
+            <EditableText value={h.venueLine} onChange={v => patchContent({ hero: { venueLine: v } })} />
+          </div>
           <Countdown targetDate={countdownTarget} />
           <div className="hero__actions">
             {sec.invitation !== false && (
-              <a href={SITE_PATHS.guest} className="btn btn--primary">{h.btnInvitation} <span className="arrow">→</span></a>
+              <a href={SITE_PATHS.guest} className="btn btn--primary" onClick={e => editor?.isEditing && e.preventDefault()}>
+                <EditableText value={h.btnInvitation} onChange={v => patchContent({ hero: { btnInvitation: v } })} />{" "}
+                <span className="arrow">→</span>
+              </a>
             )}
             {sec.rsvp !== false && (
-              <a href="#rsvp" className="btn">{h.btnRsvp}</a>
+              <a href="#rsvp" className="btn" onClick={e => editor?.isEditing && e.preventDefault()}>
+                <EditableText value={h.btnRsvp} onChange={v => patchContent({ hero: { btnRsvp: v } })} />
+              </a>
             )}
             {sec.story !== false && (
-              <a href="#story" className="btn btn--ghost" style={{ color: "var(--ivory)", borderColor: "rgba(255,255,255,0.3)" }}>{h.btnStory}</a>
+              <a
+                href="#story"
+                className="btn btn--ghost"
+                style={{ color: "var(--ivory)", borderColor: "rgba(255,255,255,0.3)" }}
+                onClick={e => editor?.isEditing && e.preventDefault()}
+              >
+                <EditableText value={h.btnStory} onChange={v => patchContent({ hero: { btnStory: v } })} />
+              </a>
             )}
           </div>
         </div>
       </div>
 
       <div className="hero__scroll">
-        <span>{h.scrollLabel}</span>
+        <EditableText value={h.scrollLabel} onChange={v => patchContent({ hero: { scrollLabel: v } })} />
         <span className="line" />
       </div>
     </section>
@@ -297,32 +359,58 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
 // LOVE STORY
 // ============================================================
 export function LoveStory() {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const s = content.story || {};
   const chapters = s.chapters || [];
+
+  const patchChapter = (i: number, partial: Record<string, string>) => {
+    const updated = [...chapters];
+    updated[i] = { ...updated[i], ...partial };
+    patchContent({ story: { chapters: updated } });
+  };
+
   return (
     <section id="story" className="section">
-      <div className="section__head reveal">
-        <div>
-          <div className="eyebrow">{s.eyebrow} <span className="dot" /> {s.eyebrowLabel}</div>
-          <h2 className="section__title">{s.titleLine1}<em>{s.titleEm}</em><br />{s.titleLine2}</h2>
-        </div>
-        <p className="section__lede">{s.lede}</p>
-      </div>
+      <SectionHead
+        eyebrow={s.eyebrow}
+        eyebrowLabel={s.eyebrowLabel}
+        titleLine1={s.titleLine1}
+        titleEm={s.titleEm}
+        titleLine2={s.titleLine2}
+        lede={s.lede}
+        onPatch={p => patchContent({ story: p })}
+      />
 
       <div className="story__rail">
         {chapters.map((c, i) => (
           <article key={i} className={`story__chapter reveal ${c.flip ? "story__chapter--flip" : ""}`}>
             <div className="story__media">
-              <div className="stamp">{c.caption}</div>
-              <Ph label={c.caption} src={c.imageUrl} variant={i % 2 === 1 ? "blush" : "default"} />
+              <div className="stamp">
+                <EditableText value={c.caption} onChange={v => patchChapter(i, { caption: v })} />
+              </div>
+              <EditableImage
+                label={c.caption}
+                src={c.imageUrl}
+                variant={i % 2 === 1 ? "blush" : "default"}
+                onChange={url => patchChapter(i, { imageUrl: url })}
+              />
             </div>
             <div className="story__body">
-              <div className="story__chapter-num">{c.chapter}</div>
-              <h3 className="story__title">{c.title}</h3>
-              <div className="story__date">{c.date}</div>
-              <p className="story__copy">{c.body}</p>
-              <div className="story__handwritten">— {c.handwritten}</div>
+              <div className="story__chapter-num">
+                <EditableText value={c.chapter} onChange={v => patchChapter(i, { chapter: v })} />
+              </div>
+              <h3 className="story__title">
+                <EditableText value={c.title} onChange={v => patchChapter(i, { title: v })} />
+              </h3>
+              <div className="story__date">
+                <EditableText value={c.date} onChange={v => patchChapter(i, { date: v })} />
+              </div>
+              <p className="story__copy">
+                <EditableText value={c.body} onChange={v => patchChapter(i, { body: v })} multiline />
+              </p>
+              <div className="story__handwritten">
+                — <EditableText value={c.handwritten} onChange={v => patchChapter(i, { handwritten: v })} />
+              </div>
             </div>
           </article>
         ))}
@@ -335,10 +423,20 @@ export function LoveStory() {
 // DETAILS
 // ============================================================
 export function Details() {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const d = content.details || {};
   const cer = d.ceremonyCard || {};
   const rec = d.receptionCard || {};
+
+  const patchCer = (partial: Record<string, string>) =>
+    patchContent({ details: { ceremonyCard: { ...(cer as Record<string, unknown>), ...partial } } });
+  const patchRec = (partial: Record<string, string>) =>
+    patchContent({ details: { receptionCard: { ...(rec as Record<string, unknown>), ...partial } } });
+  const patchItin = (i: number, partial: Record<string, string>) => {
+    const updated = [...(d.itinerary || [])];
+    updated[i] = { ...updated[i], ...partial };
+    patchContent({ details: { itinerary: updated } });
+  };
   const itinerary = d.itinerary || [];
   const mapImg = (d.mapImageUrl || "").trim();
   const hasMapImage = isSafeHttpsAssetUrl(mapImg);
@@ -362,39 +460,84 @@ export function Details() {
   const mapTilerTrueColor = isMapTilerCloudMapUrl(mapSrc);
   return (
     <section id="details" className="section section--beige">
-      <div className="section__head reveal">
-        <div>
-          <div className="eyebrow">{d.eyebrow} <span className="dot" /> {d.eyebrowLabel}</div>
-          <h2 className="section__title">{d.titleLine1}<em>{d.titleEm}</em><br />{d.titleLine2}</h2>
-        </div>
-        <p className="section__lede">{d.lede}</p>
-      </div>
+      <SectionHead
+        eyebrow={d.eyebrow}
+        eyebrowLabel={d.eyebrowLabel}
+        titleLine1={d.titleLine1}
+        titleEm={d.titleEm}
+        titleLine2={d.titleLine2}
+        lede={d.lede}
+        onPatch={p => patchContent({ details: p })}
+      />
 
       <div className="details__grid reveal-stagger">
         <article className="details__card">
-          <Ph label={cer.imageLabel} src={cer.imageUrl} />
+          <EditableImage
+            label={cer.imageLabel}
+            src={cer.imageUrl}
+            onChange={url => patchCer({ imageUrl: url })}
+          />
           <div className="details__card-body">
-            <div className="eyebrow">{cer.eyebrow}</div>
-            <h3>{cer.title}</h3>
-            <p className="addr">{cer.addrLine1}<br />{cer.addrLine2}</p>
+            <div className="eyebrow">
+              <EditableText value={cer.eyebrow} onChange={v => patchCer({ eyebrow: v })} />
+            </div>
+            <h3>
+              <EditableText value={cer.title} onChange={v => patchCer({ title: v })} />
+            </h3>
+            <p className="addr">
+              <EditableText value={cer.addrLine1} onChange={v => patchCer({ addrLine1: v })} />
+              <br />
+              <EditableText value={cer.addrLine2} onChange={v => patchCer({ addrLine2: v })} />
+            </p>
             <div className="meta">
-              <div><span>{cer.arrivalLabel || "Arrival"}</span><strong>{cer.arrivalTime}</strong></div>
-              <div><span>{cer.vowsLabel || "Vows"}</span><strong>{cer.vowsTime}</strong></div>
-              <div><span>{cer.attireLabel || "Attire"}</span><strong>{cer.attireValue}</strong></div>
+              <div>
+                <span><EditableText value={cer.arrivalLabel || "Arrival"} onChange={v => patchCer({ arrivalLabel: v })} /></span>
+                <strong><EditableText value={cer.arrivalTime} onChange={v => patchCer({ arrivalTime: v })} /></strong>
+              </div>
+              <div>
+                <span><EditableText value={cer.vowsLabel || "Vows"} onChange={v => patchCer({ vowsLabel: v })} /></span>
+                <strong><EditableText value={cer.vowsTime} onChange={v => patchCer({ vowsTime: v })} /></strong>
+              </div>
+              <div>
+                <span><EditableText value={cer.attireLabel || "Attire"} onChange={v => patchCer({ attireLabel: v })} /></span>
+                <strong><EditableText value={cer.attireValue} onChange={v => patchCer({ attireValue: v })} /></strong>
+              </div>
             </div>
           </div>
         </article>
 
         <article className="details__card">
-          <Ph label={rec.imageLabel} src={rec.imageUrl} variant="blush" />
+          <EditableImage
+            label={rec.imageLabel}
+            src={rec.imageUrl}
+            variant="blush"
+            onChange={url => patchRec({ imageUrl: url })}
+          />
           <div className="details__card-body">
-            <div className="eyebrow">{rec.eyebrow}</div>
-            <h3>{rec.title}</h3>
-            <p className="addr">{rec.addrLine1}<br />{rec.addrLine2}</p>
+            <div className="eyebrow">
+              <EditableText value={rec.eyebrow} onChange={v => patchRec({ eyebrow: v })} />
+            </div>
+            <h3>
+              <EditableText value={rec.title} onChange={v => patchRec({ title: v })} />
+            </h3>
+            <p className="addr">
+              <EditableText value={rec.addrLine1} onChange={v => patchRec({ addrLine1: v })} />
+              <br />
+              <EditableText value={rec.addrLine2} onChange={v => patchRec({ addrLine2: v })} />
+            </p>
             <div className="meta">
-              <div><span>{rec.dinnerLabel || "Dinner"}</span><strong>{rec.dinnerTime}</strong></div>
-              <div><span>{rec.dancingLabel || "Dancing"}</span><strong>{rec.dancingTime}</strong></div>
-              <div><span>{rec.attireLabel || "Attire"}</span><strong>{rec.attireValue}</strong></div>
+              <div>
+                <span><EditableText value={rec.dinnerLabel || "Dinner"} onChange={v => patchRec({ dinnerLabel: v })} /></span>
+                <strong><EditableText value={rec.dinnerTime} onChange={v => patchRec({ dinnerTime: v })} /></strong>
+              </div>
+              <div>
+                <span><EditableText value={rec.dancingLabel || "Dancing"} onChange={v => patchRec({ dancingLabel: v })} /></span>
+                <strong><EditableText value={rec.dancingTime} onChange={v => patchRec({ dancingTime: v })} /></strong>
+              </div>
+              <div>
+                <span><EditableText value={rec.attireLabel || "Attire"} onChange={v => patchRec({ attireLabel: v })} /></span>
+                <strong><EditableText value={rec.attireValue} onChange={v => patchRec({ attireValue: v })} /></strong>
+              </div>
             </div>
           </div>
         </article>
@@ -487,26 +630,46 @@ export function Details() {
             <circle cx="380" cy="190" r="3" fill="rgba(26,23,20,0.3)" />
             <circle cx="900" cy="240" r="3" fill="rgba(26,23,20,0.3)" />
           </svg>
-          <div className="pin" style={{ left: "32%", top: "55%" }}>{d.mapPinCeremony}</div>
-          <div className="pin pin--gold" style={{ left: "62%", top: "38%" }}>{d.mapPinReception}</div>
+          <div className="pin" style={{ left: "32%", top: "55%" }}>
+            <EditableText value={d.mapPinCeremony} onChange={v => patchContent({ details: { mapPinCeremony: v } })} />
+          </div>
+          <div className="pin pin--gold" style={{ left: "62%", top: "38%" }}>
+            <EditableText value={d.mapPinReception} onChange={v => patchContent({ details: { mapPinReception: v } })} />
+          </div>
         </div>
       )}
 
       <div className="itinerary reveal">
         <div className="itinerary__head">
           <div>
-            <div className="eyebrow">{d.itineraryEyebrow}</div>
-            <h3 className="serif" style={{ fontSize: 36, fontWeight: 300, margin: "8px 0 0" }}>{d.itineraryTitle}</h3>
+            <div className="eyebrow">
+              <EditableText value={d.itineraryEyebrow} onChange={v => patchContent({ details: { itineraryEyebrow: v } })} />
+            </div>
+            <h3 className="serif" style={{ fontSize: 36, fontWeight: 300, margin: "8px 0 0" }}>
+              <EditableText value={d.itineraryTitle} onChange={v => patchContent({ details: { itineraryTitle: v } })} />
+            </h3>
           </div>
-          <button type="button" className="btn btn--ghost" onClick={() => downloadWeddingIcs()}>{d.addCalendarLabel || "Add to calendar"} <span className="arrow">→</span></button>
+          <button type="button" className="btn btn--ghost" onClick={() => downloadWeddingIcs()}>
+            <EditableText value={d.addCalendarLabel || "Add to calendar"} onChange={v => patchContent({ details: { addCalendarLabel: v } })} />
+            {" "}<span className="arrow">→</span>
+          </button>
         </div>
         <div className="itinerary__list">
           {itinerary.map((row, i) => (
             <div className="itin-row" key={i}>
-              <div className="itin-row__time">{row.time}</div>
-              <div className="itin-row__title">{row.title}<small>{row.sub}</small></div>
-              <div className="itin-row__loc">{row.loc}</div>
-              <div className="itin-row__attire">{row.attire}</div>
+              <div className="itin-row__time">
+                <EditableText value={row.time} onChange={v => patchItin(i, { time: v })} />
+              </div>
+              <div className="itin-row__title">
+                <EditableText value={row.title} onChange={v => patchItin(i, { title: v })} />
+                <small><EditableText value={row.sub} onChange={v => patchItin(i, { sub: v })} /></small>
+              </div>
+              <div className="itin-row__loc">
+                <EditableText value={row.loc} onChange={v => patchItin(i, { loc: v })} />
+              </div>
+              <div className="itin-row__attire">
+                <EditableText value={row.attire} onChange={v => patchItin(i, { attire: v })} />
+              </div>
             </div>
           ))}
         </div>

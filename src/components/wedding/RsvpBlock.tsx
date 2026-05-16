@@ -1,9 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
+import { useSiteEditorOptional } from "../../lib/siteEditor";
 import { parseApiErrorCode, parseApiErrorMessage } from "../../lib/api/json";
 import { sanitizePosterHtml } from "../../lib/sanitize-poster";
 import { SITE_PATHS } from "../../lib/sitePages";
 import { Ph } from "./Core";
+import { EditableText } from "../editable/EditableText";
+import { EditableImage } from "../editable/EditableImage";
+import { EditableHtml } from "../editable/EditableHtml";
+import { SectionHead } from "../editable/SectionTitle";
 
 type RsvpForm = {
   name: string;
@@ -20,7 +25,7 @@ type RsvpForm = {
 // RSVP — multi step
 // ============================================================
 export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const r = content.rsvp || {};
   const [step, setStep] = useState(initialStep);
   const [submitting, setSubmitting] = useState(false);
@@ -134,33 +139,46 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
 
   return (
     <section id="rsvp" className="section">
-      <div className="section__head reveal">
-        <div>
-          <div className="eyebrow">{r.eyebrow} <span className="dot" /> {r.eyebrowLabel}</div>
-          <h2 className="section__title">{r.titleLine1}<em>{r.titleEm}</em><br />{r.titleLine2}</h2>
-        </div>
-        <p className="section__lede">{r.lede}</p>
-      </div>
+      <SectionHead
+        eyebrow={r.eyebrow}
+        eyebrowLabel={r.eyebrowLabel}
+        titleLine1={r.titleLine1}
+        titleEm={r.titleEm}
+        titleLine2={r.titleLine2}
+        lede={r.lede}
+        onPatch={p => patchContent({ rsvp: p })}
+      />
 
       <div className="rsvp__wrap reveal">
         <aside className="rsvp__poster">
           <div className="ornament" />
           <div>
-            <div className="rsvp-stamp">{r.posterStampTop}</div>
-            <h3
-              style={{ marginTop: 20 }}
-              dangerouslySetInnerHTML={{ __html: sanitizePosterHtml(r.posterTitleHtml || "") }}
+            <div className="rsvp-stamp">
+              <EditableText value={r.posterStampTop} onChange={v => patchContent({ rsvp: { posterStampTop: v } })} />
+            </div>
+            <EditableHtml
+              as="h3"
+              value={r.posterTitleHtml}
+              onChange={v => patchContent({ rsvp: { posterTitleHtml: v } })}
+              className=""
             />
-            <p>{r.posterBody}</p>
+            <p>
+              <EditableText value={r.posterBody} onChange={v => patchContent({ rsvp: { posterBody: v } })} multiline as="span" />
+            </p>
           </div>
-          <div className="rsvp-stamp" dangerouslySetInnerHTML={{ __html: sanitizePosterHtml(r.posterStampBottom || "") }} />
+          <EditableHtml
+            value={r.posterStampBottom}
+            onChange={v => patchContent({ rsvp: { posterStampBottom: v } })}
+            className="rsvp-stamp"
+          />
         </aside>
 
         <div className="rsvp__form-card">
           <div className="rsvp__steps">
             {steps.map((s, i) => (
-              <div key={s} className={stepDotClass(i, step)}>
-                <span className="rsvp__step-num">0{i+1}</span> {s}
+              <div key={s} className={stepDotClass(i, step)} aria-label={`Step ${i + 1}: ${s}`}>
+                <span className="rsvp__step-num">0{i + 1}</span>
+                <span className="rsvp__step-label">{s}</span>
               </div>
             ))}
           </div>
@@ -168,7 +186,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
           {step === 0 && (
             <div className="rsvp__panel">
               <div className="eyebrow">{r.step1Eyebrow}</div>
-              <div style={{ fontFamily: "var(--serif)", fontSize: 28, fontWeight: 300, lineHeight: 1.1 }}>{r.step1Lead}</div>
+              <div className="rsvp__lead">{r.step1Lead}</div>
               <div className="field">
                 <label>{r.labelName}</label>
                 <input value={data.name} onChange={e => set("name", e.target.value)} placeholder={r.phName} />
@@ -183,7 +201,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
           {step === 1 && (
             <div className="rsvp__panel">
               <div className="eyebrow">{r.step2Eyebrow}</div>
-              <div style={{ fontFamily: "var(--serif)", fontSize: 28, fontWeight: 300, lineHeight: 1.1 }}>{r.step2Lead}</div>
+              <div className="rsvp__lead">{r.step2Lead}</div>
               <div className="choice-row">
                 <button type="button" className={`choice choice--gold ${data.attendance === "yes" ? "selected" : ""}`} onClick={() => set("attendance", "yes")}>{r.acceptLabel}</button>
                 <button type="button" className={`choice ${data.attendance === "no" ? "selected" : ""}`} onClick={() => set("attendance", "no")}>{r.declineLabel}</button>
@@ -215,7 +233,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
           {step === 2 && (
             <div className="rsvp__panel">
               <div className="eyebrow">{r.step3Eyebrow}</div>
-              <div style={{ fontFamily: "var(--serif)", fontSize: 28, fontWeight: 300, lineHeight: 1.1 }}>{r.step3Lead}</div>
+              <div className="rsvp__lead">{r.step3Lead}</div>
               <div className="field">
                 <label>{r.dietLabel}</label>
                 <div className="choice-row">
@@ -305,27 +323,47 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
 // BRIDAL PARTY
 // ============================================================
 export function BridalParty() {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
   const pz = content.party || {};
   const members = pz.members || [];
+
+  const patchMember = (i: number, partial: Record<string, string>) => {
+    const updated = [...members];
+    updated[i] = { ...updated[i], ...partial };
+    patchContent({ party: { members: updated } });
+  };
+
   return (
     <section id="party" className="section section--dark">
-      <div className="section__head reveal">
-        <div>
-          <div className="eyebrow">{pz.eyebrow} <span className="dot" /> {pz.eyebrowLabel}</div>
-          <h2 className="section__title" style={{ color: "var(--ivory)" }}>{pz.titleLine1}<br />{pz.titleLine2}<em>{pz.titleEm}</em></h2>
-        </div>
-        <p className="section__lede">{pz.lede}</p>
-      </div>
+      <SectionHead
+        eyebrow={pz.eyebrow}
+        eyebrowLabel={pz.eyebrowLabel}
+        titleLine1={pz.titleLine1}
+        titleEm={pz.titleEm}
+        titleLine2={pz.titleLine2}
+        lede={pz.lede}
+        onPatch={p => patchContent({ party: p })}
+      />
 
       <div className="party__grid reveal-stagger">
         {members.map((p, i) => (
           <article key={i} className="party-card">
-            <Ph label={`${String(i+1).padStart(2,"0")} · ${(p.name || "").split(" ")[0]}`} src={p.imageUrl} variant={i % 2 ? "default" : "blush"} />
+            <EditableImage
+              label={`${String(i + 1).padStart(2, "0")} · ${(p.name || "").split(" ")[0]}`}
+              src={p.imageUrl}
+              variant={i % 2 ? "default" : "blush"}
+              onChange={url => patchMember(i, { imageUrl: url })}
+            />
             <div className="party-card__overlay">
-              <div className="party-card__role">{p.role}</div>
-              <div className="party-card__name">{p.name}</div>
-              <div className="party-card__bio">{p.bio}</div>
+              <div className="party-card__role">
+                <EditableText value={p.role} onChange={v => patchMember(i, { role: v })} />
+              </div>
+              <div className="party-card__name">
+                <EditableText value={p.name} onChange={v => patchMember(i, { name: v })} />
+              </div>
+              <div className="party-card__bio">
+                <EditableText value={p.bio} onChange={v => patchMember(i, { bio: v })} multiline />
+              </div>
             </div>
           </article>
         ))}
@@ -338,7 +376,8 @@ export function BridalParty() {
 // GALLERY w/ lightbox
 // ============================================================
 export function Gallery() {
-  const { content } = useWeddingContent();
+  const { content, patchContent } = useWeddingContent();
+  const editor = useSiteEditorOptional();
   const gz = content.gallery || {};
   const items = gz.items || [];
   const n = Math.max(1, items.length);
@@ -346,6 +385,12 @@ export function Gallery() {
   const close = useCallback(() => setOpen(-1), []);
   const next = useCallback(() => setOpen(o => (o + 1) % n), [n]);
   const prev = useCallback(() => setOpen(o => (o - 1 + n) % n), [n]);
+
+  const patchItem = (i: number, partial: Record<string, string>) => {
+    const updated = [...items];
+    updated[i] = { ...updated[i], ...partial };
+    patchContent({ gallery: { items: updated } });
+  };
 
   useEffect(() => {
     if (open < 0) return;
@@ -361,19 +406,32 @@ export function Gallery() {
 
   return (
     <section id="gallery" className="section section--beige">
-      <div className="section__head reveal">
-        <div>
-          <div className="eyebrow">{gz.eyebrow} <span className="dot" /> {gz.eyebrowLabel}</div>
-          <h2 className="section__title">{gz.titleLine1}<em>{gz.titleEm}</em></h2>
-        </div>
-        <p className="section__lede">{gz.lede}</p>
-      </div>
+      <SectionHead
+        eyebrow={gz.eyebrow}
+        eyebrowLabel={gz.eyebrowLabel}
+        titleLine1={gz.titleLine1}
+        titleEm={gz.titleEm}
+        lede={gz.lede}
+        onPatch={p => patchContent({ gallery: p })}
+      />
 
       <div className="gallery reveal">
         {items.map((g, i) => (
-          <figure key={i} className="gallery__item" onClick={() => setOpen(i)}>
-            <Ph label={g.caption} src={g.imageUrl} variant={i % 3 === 1 ? "blush" : i % 3 === 2 ? "dark" : "default"} style={{ aspectRatio: g.ratio }} />
-            <figcaption className="gallery__cap">{g.caption}</figcaption>
+          <figure
+            key={i}
+            className="gallery__item"
+            onClick={editor?.isEditing ? undefined : () => setOpen(i)}
+          >
+            <EditableImage
+              label={g.caption}
+              src={g.imageUrl}
+              variant={i % 3 === 1 ? "blush" : i % 3 === 2 ? "dark" : "default"}
+              style={{ aspectRatio: g.ratio }}
+              onChange={url => patchItem(i, { imageUrl: url })}
+            />
+            <figcaption className="gallery__cap">
+              <EditableText value={g.caption} onChange={v => patchItem(i, { caption: v })} />
+            </figcaption>
           </figure>
         ))}
       </div>
@@ -388,7 +446,7 @@ export function Gallery() {
           </button>
           <button type="button" className="lightbox__nav lightbox__nav--prev" onClick={e => { e.stopPropagation(); prev(); }} aria-label="Previous">‹</button>
           <button type="button" className="lightbox__nav lightbox__nav--next" onClick={e => { e.stopPropagation(); next(); }} aria-label="Next">›</button>
-          <div className="lightbox__meta" onClick={e => e.stopPropagation()}>{String(open+1).padStart(2,"0")} / {String(items.length).padStart(2,"0")} · {items[open].caption}</div>
+          <div className="lightbox__meta" onClick={e => e.stopPropagation()}>{String(open + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")} · {items[open].caption}</div>
         </div>
       )}
     </section>

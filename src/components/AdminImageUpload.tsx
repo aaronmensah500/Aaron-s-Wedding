@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { IMAGE_UPLOAD_ACCEPT, useAdminImageUpload } from "../lib/useAdminImageUpload";
 
 type Props = {
   label: string;
@@ -6,51 +7,16 @@ type Props = {
   onChange: (url: string) => void;
 };
 
-const uploadToken = import.meta.env.PUBLIC_ADMIN_UPLOAD_TOKEN;
-const canUpload = Boolean(uploadToken);
-
 export function AdminImageUpload({ label, value, onChange }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const { inputRef, busy, err, pickFile, onInputChange, handleFile, canUpload } = useAdminImageUpload(onChange);
   const [showUrlInput, setShowUrlInput] = useState(false);
 
   const url = value ?? "";
 
-  async function handleFile(file: File) {
-    setErr("");
-    setBusy(true);
-    try {
-      const body = new FormData();
-      body.append("file", file);
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${uploadToken}` },
-        body,
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setErr(json?.error?.message ?? `Upload failed (${res.status})`);
-        return;
-      }
-      onChange(json.url ?? "");
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Upload failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
-    e.target.value = "";
-  }
-
   function onDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   }
 
   return (
@@ -93,7 +59,7 @@ export function AdminImageUpload({ label, value, onChange }: Props) {
             <input
               ref={inputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+              accept={IMAGE_UPLOAD_ACCEPT}
               style={{ display: "none" }}
               onChange={onInputChange}
             />
@@ -101,42 +67,43 @@ export function AdminImageUpload({ label, value, onChange }: Props) {
               type="button"
               className="adm-btn adm-btn--sm adm-btn--ghost"
               disabled={busy}
-              onClick={() => inputRef.current?.click()}
+              onClick={pickFile}
             >
-              {busy ? "Uploading…" : url ? "Change image" : "Choose image"}
+              {busy ? "Uploading…" : url ? "Replace photo" : "Upload photo"}
             </button>
-            {url && (
+            {url ? (
               <button
                 type="button"
                 className="adm-btn adm-btn--sm adm-btn--danger"
                 disabled={busy}
-                onClick={() => { onChange(""); setErr(""); }}
+                onClick={() => onChange("")}
               >
                 Remove
               </button>
-            )}
+            ) : null}
             <span style={{ fontSize: 10, color: "var(--muted)" }}>
-              or drag & drop · JPEG PNG WebP GIF AVIF · max 10 MB
+              From your phone or computer · max 10 MB
             </span>
           </div>
 
           <button
             type="button"
-            style={{ alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: 10, color: "var(--muted)", cursor: "pointer", textDecoration: "underline" }}
+            className="adm-field__url-toggle"
             onClick={() => setShowUrlInput(v => !v)}
           >
-            {showUrlInput ? "Hide URL input" : "Or paste a URL"}
+            {showUrlInput ? "Hide paste-URL option" : "Advanced: paste image URL"}
           </button>
 
-          {showUrlInput && (
+          {showUrlInput ? (
             <input
               className="adm-field__input"
-              type="text"
+              type="url"
+              inputMode="url"
               placeholder="https://…"
               value={url}
               onChange={e => onChange(e.target.value)}
             />
-          )}
+          ) : null}
         </>
       ) : (
         /* fallback when upload token not configured */

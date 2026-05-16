@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { WeddingContentProvider, useWeddingContent } from "../lib/weddingContent";
+import { SiteEditorProvider } from "../lib/siteEditor";
 import type { SitePageId } from "../lib/sitePages";
 import { ClientAdmin } from "./AdminPanel";
 import {
@@ -182,10 +183,22 @@ function App({ page }: AppProps) {
 
 type WeddingAppProps = { page?: SitePageId };
 
+function AppWithSiteEditor({ page }: AppProps) {
+  const { content } = useWeddingContent();
+  return (
+    <SiteEditorProvider
+      requirePin={content.admin?.requirePin !== false}
+      expectedPin={String(content.admin?.pin ?? "")}
+    >
+      <App page={page} />
+    </SiteEditorProvider>
+  );
+}
+
 export default function WeddingApp({ page = "home" }: WeddingAppProps) {
   return (
     <WeddingContentProvider>
-      <App page={page} />
+      <AppWithSiteEditor page={page} />
     </WeddingContentProvider>
   );
 }
