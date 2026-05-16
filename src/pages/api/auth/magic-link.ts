@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { createClient } from "@supabase/supabase-js";
+import { isEmailOnGuestList } from "../../../lib/guest-access";
 import { getServiceSupabase } from "../../../lib/supabase/service";
 import { jsonError, jsonOk } from "../../../lib/api/json";
 import { rateLimitConsume } from "../../../lib/rate-limit";
@@ -49,8 +50,8 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonError("invalid_email", 400, apiErrorMessage("invalid_email"));
   }
 
-  const { data, error } = await service.from("rsvps").select("id").eq("email", email).maybeSingle();
-  if (error || !data) {
+  const onList = await isEmailOnGuestList(service, email);
+  if (!onList) {
     return jsonError("not_on_guest_list", 404, apiErrorMessage("not_on_guest_list"));
   }
 
@@ -63,7 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
   ]
     .map(s => String(s || "").trim().replace(/\/$/, ""))
     .find(Boolean) ?? "";
-  const redirect = siteUrl ? `${siteUrl}/` : undefined;
+  const redirect = siteUrl ? `${siteUrl}/guest` : undefined;
 
   const pub = createClient(url, anon, {
     auth: { persistSession: false, autoRefreshToken: false },

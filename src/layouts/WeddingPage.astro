@@ -1,0 +1,19 @@
+---
+import Layout from "./Layout.astro";
+import "../styles/styles.css";
+import "../styles/sections.css";
+import WeddingApp from "../components/WeddingApp";
+import type { SitePageId } from "../lib/sitePages";
+import { PAGE_TITLES } from "../lib/sitePages";
+
+interface Props {
+  page: SitePageId;
+  title?: string;
+}
+
+const { page, title } = Astro.props;
+---
+
+<Layout title={title ?? PAGE_TITLES[page]}>
+  <WeddingApp client:only="react" page={page} />
+</Layout>

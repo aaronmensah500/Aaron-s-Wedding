@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef, useMemo, useCallback, type CSSProperties } from "react";
+import { Fragment, useState, useEffect, useRef, useMemo, useCallback, useId, type CSSProperties } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
 import { downloadWeddingIcs } from "../../lib/calendar";
 import { isSafeHttpsAssetUrl } from "../../lib/mapAssetUrl";
@@ -9,6 +9,7 @@ import {
   normalizeMapEmbedUrl,
 } from "../../lib/mapEmbed";
 import { parseCoord } from "../../lib/mapCoords";
+import { buildNavLinks, SITE_PATHS, type SitePageId } from "../../lib/sitePages";
 import { DetailsVenueLeaflet } from "./DetailsVenueLeaflet";
 
 // ============================================================
@@ -83,38 +84,68 @@ export function Ph({ label, src, variant = "default", className = "", style }: {
 // ============================================================
 // NAV
 // ============================================================
-export function Nav() {
+export function Nav({ currentPage }: { currentPage: SitePageId }) {
   const scrolled = useScrolled(80);
+  const menuId = useId();
+  const [menuOpen, setMenuOpen] = useState(false);
   const { content } = useWeddingContent();
   const sec = content.sections || {};
   const h = content.hero || {};
   const brandLeft = (h.nameLine1 || "A").trim().charAt(0) || "A";
   const brandRight = (h.nameLine2 || "P").trim().charAt(0) || "P";
-  const links = [];
-  if (sec.story !== false) links.push({ href: "#story", label: "Story" });
-  if (sec.details !== false) links.push({ href: "#details", label: "Details" });
-  if (sec.travel !== false) {
-    const tl = content.travelLogistics;
-    links.push({ href: "#travel", label: (tl?.navLabel || "Travel").trim() || "Travel" });
-  }
-  if (sec.gallery !== false) links.push({ href: "#gallery", label: "Gallery" });
-  if (sec.registry !== false) links.push({ href: "#registry", label: "Registry" });
-  if (sec.stream !== false) links.push({ href: "#stream", label: "Live" });
-  if (import.meta.env.PUBLIC_SUPABASE_URL) links.push({ href: "#guest-upload", label: "Guest photos" });
+  const links = buildNavLinks(sec, content.travelLogistics?.navLabel);
+  const onHome = currentPage === "home";
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
   return (
-    <nav className={`nav ${scrolled ? "nav--solid" : ""}`}>
-      <div className="nav__brand">
+    <nav className={`nav ${scrolled || !onHome ? "nav--solid" : ""}${menuOpen ? " nav--menu-open" : ""}`}>
+      <a href={SITE_PATHS.home} className="nav__brand">
         <span className="serif" style={{ fontSize: 22 }}>{brandLeft}<span style={{ fontFamily: "var(--script)", color: "var(--champagne)", margin: "0 4px" }}>&amp;</span>{brandRight}</span>
         <span className="mono-id">{content.nav?.monoId || "No. 12 · 12 · 26"}</span>
-      </div>
-      <div className="nav__menu">
+      </a>
+      <button
+        type="button"
+        className="nav__toggle"
+        aria-expanded={menuOpen}
+        aria-controls={menuId}
+        onClick={() => setMenuOpen(o => !o)}
+      >
+        <span className="nav__toggle-label">{menuOpen ? "Close" : "Menu"}</span>
+      </button>
+      <div id={menuId} className="nav__menu">
         {links.map(l => (
-          <a key={l.href} href={l.href}>{l.label}</a>
+          <a
+            key={l.href}
+            href={l.href}
+            className={l.page === currentPage ? "nav__link--active" : undefined}
+            aria-current={l.page === currentPage ? "page" : undefined}
+            onClick={() => setMenuOpen(false)}
+          >
+            {l.label}
+          </a>
         ))}
       </div>
       {sec.rsvp !== false && (
         <div className="nav__cta">
-          <a href="#rsvp" className="pill">RSVP</a>
+          <a
+            href={onHome ? "#rsvp" : SITE_PATHS.rsvp}
+            className={`pill${currentPage === "rsvp" ? " pill--active" : ""}`}
+            onClick={() => setMenuOpen(false)}
+          >
+            RSVP
+          </a>
         </div>
       )}
     </nav>
@@ -242,7 +273,7 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
           <Countdown targetDate={countdownTarget} />
           <div className="hero__actions">
             {sec.invitation !== false && (
-              <a href="#invitation" className="btn btn--primary">{h.btnInvitation} <span className="arrow">→</span></a>
+              <a href={SITE_PATHS.guest} className="btn btn--primary">{h.btnInvitation} <span className="arrow">→</span></a>
             )}
             {sec.rsvp !== false && (
               <a href="#rsvp" className="btn">{h.btnRsvp}</a>

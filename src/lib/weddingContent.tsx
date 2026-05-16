@@ -2,7 +2,17 @@
  * Client-editable site copy + images + section visibility.
  * Persisted to localStorage. Merge on load so new keys from updates appear.
  */
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from "react";
+import { fetchPublishedSiteContent, publishSiteContent } from "./siteContentApi";
 
 /** Current persisted key. v1 is read once and migrated so repo default name/venue updates are not stuck under old merges. */
 const WEDDING_SITE_STORAGE_KEY = "wedding-site-content-v2";
@@ -76,6 +86,41 @@ const WEDDING_CONTENT_DEFAULT = {
   nav: {
     monoId: "No. 12 · 12 · 26"
   },
+  homeHub: {
+    eyebrow: "Explore",
+    titleLine1: "Everything for ",
+    titleEm: "the weekend",
+    titleLine2: "",
+    lede: "",
+    moreEyebrow: "More",
+    moreTitle: "Plan the weekend",
+    cards: [
+      {
+        id: "wedding",
+        eyebrow: "Ceremony & reception",
+        title: "The wedding",
+        lede: "Venues in Accra, timings, dress code, and the evening itinerary."
+      },
+      {
+        id: "travel",
+        eyebrow: "Plan your trip",
+        title: "Travel",
+        lede: "Flights, where to stay, and getting around Ghana."
+      },
+      {
+        id: "gallery",
+        eyebrow: "Memories",
+        title: "Gallery",
+        lede: "A few favourite moments — more to come after the day."
+      },
+      {
+        id: "guest",
+        eyebrow: "Just for you",
+        title: "Your invitation",
+        lede: "Personal QR, seating, and guest photo upload."
+      }
+    ]
+  },
   hero: {
     bgImageUrl: "",
     venueLine: "Agape House · El-Wak Stadium · Accra",
@@ -92,6 +137,7 @@ const WEDDING_CONTENT_DEFAULT = {
     btnStory: "Our Story"
   },
   story: {
+    homeImageUrl: "",
     eyebrow: "No. 01",
     eyebrowLabel: "The story",
     titleLine1: "Our ",
@@ -355,7 +401,7 @@ const WEDDING_CONTENT_DEFAULT = {
     fundTitle: "An island in Zanzibar",
     currencies: "GHS · Paystack secure checkout",
     fundBody: "Two weeks on the east coast, a small fishing boat, and the slowest pace we can manage. Pick an amount, enter your email, and complete payment in the Paystack window (test or live keys from your dashboard).",
-    amountPresetCsv: "200,500,1000,2500,5000",
+    amountPresetCsv: "200,500,1000",
     payCurrencyCode: "GHS",
     contributeEmailLabel: "Email (for receipt)",
     contributeEmailPlaceholder: "you@example.com",
@@ -505,6 +551,27 @@ function repairMapTilerInaccessibleDemoMap(merged: WeddingSiteContent): { conten
   };
 }
 
+/** Retired GH₵2,500 / GH₵5,000 tiers from older editor saves. */
+function repairRegistryAmountPresets(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const exclude = new Set([2500, 5000]);
+  const csv = merged.registry?.amountPresetCsv;
+  if (typeof csv !== "string" || !csv.trim()) return { content: merged, didRepair: false };
+  const parts = csv
+    .split(/[\s,;]+/)
+    .map(s => parseInt(s.replace(/\D/g, ""), 10))
+    .filter(n => Number.isFinite(n) && n > 0);
+  const filtered = parts.filter(n => !exclude.has(n));
+  if (filtered.length === parts.length) return { content: merged, didRepair: false };
+  const nextCsv = (filtered.length ? filtered : [200, 500, 1000]).join(",");
+  return {
+    content: {
+      ...merged,
+      registry: { ...merged.registry, amountPresetCsv: nextCsv },
+    },
+    didRepair: true,
+  };
+}
+
 /** Empty editor PIN in localStorage made unlock impossible; restore default from shipped content. */
 function repairAdminPinIfEmpty(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
   const pin = merged.admin?.pin;
@@ -519,32 +586,66 @@ function repairAdminPinIfEmpty(merged: WeddingSiteContent): { content: WeddingSi
   };
 }
 
+function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSiteContent; changed: boolean } {
+  let changed = false;
+  let next = merged;
+  const steps = [
+    repairDetailsIfMistakenNigeriaSnapshot,
+    repairLegacyAdaezeInContent,
+    repairAdminPinIfEmpty,
+    repairRegistryAmountPresets,
+    repairMapTilerInaccessibleDemoMap,
+  ];
+  for (const step of steps) {
+    const r = step(next);
+    next = r.content;
+    changed ||= r.didRepair;
+  }
+  return { content: next, changed };
+}
+
+function persistLocalContent(merged: WeddingSiteContent) {
+  try {
+    localStorage.setItem(WEDDING_SITE_STORAGE_KEY, JSON.stringify(merged));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
 function loadInitialSiteContent(): WeddingSiteContent {
   const defaults = cloneDefaultContent();
   const stored = readStoredSite();
   let merged = deepMerge(defaults, stored.raw || {}) as WeddingSiteContent;
   let changed = stored.migratedFromV1;
-  const nigeria = repairDetailsIfMistakenNigeriaSnapshot(merged);
-  merged = nigeria.content;
-  changed ||= nigeria.didRepair;
-  const adaeze = repairLegacyAdaezeInContent(merged);
-  merged = adaeze.content;
-  changed ||= adaeze.didRepair;
-  const adminPin = repairAdminPinIfEmpty(merged);
-  merged = adminPin.content;
-  changed ||= adminPin.didRepair;
-  const mapTilerDemo = repairMapTilerInaccessibleDemoMap(merged);
-  merged = mapTilerDemo.content;
-  changed ||= mapTilerDemo.didRepair;
-  if (changed) {
-    try {
-      localStorage.setItem(WEDDING_SITE_STORAGE_KEY, JSON.stringify(merged));
-    } catch {
-      /* ignore quota / private mode */
-    }
-  }
+  const repaired = applyContentRepairs(merged);
+  merged = repaired.content;
+  changed ||= repaired.changed;
+  if (changed) persistLocalContent(merged);
   return merged;
 }
+
+/** Basic shape check before import / server merge. */
+export function validateSiteContentImport(
+  raw: unknown
+): { ok: true; value: Record<string, unknown> } | { ok: false; message: string } {
+  if (!isPlainObject(raw)) {
+    return { ok: false, message: "Root must be a JSON object." };
+  }
+  if (!isPlainObject(raw.sections)) {
+    return { ok: false, message: 'Missing or invalid `sections` object.' };
+  }
+  const known = new Set(Object.keys(WEDDING_CONTENT_DEFAULT));
+  const unknown = Object.keys(raw).filter(k => !known.has(k));
+  if (unknown.length > 5) {
+    return {
+      ok: false,
+      message: `Too many unknown top-level keys (${unknown.slice(0, 3).join(", ")}…). Check the file.`,
+    };
+  }
+  return { ok: true, value: raw };
+}
+
+export type SitePublishStatus = "idle" | "saving" | "saved" | "error" | "local-only";
 
 type WeddingContentValue = {
   content: typeof WEDDING_CONTENT_DEFAULT;
@@ -553,6 +654,10 @@ type WeddingContentValue = {
   replaceContent: (nextFull: unknown) => void;
   resetToDefaults: () => void;
   revision: number;
+  contentHydrated: boolean;
+  publishStatus: SitePublishStatus;
+  publishError: string;
+  publishNow: () => Promise<void>;
 };
 
 const WeddingContentContext = createContext<WeddingContentValue | null>(null);
@@ -560,31 +665,98 @@ const WeddingContentContext = createContext<WeddingContentValue | null>(null);
 function WeddingContentProvider({ children }: { children: ReactNode }) {
   const [content, setContent] = useState<WeddingSiteContent>(() => loadInitialSiteContent());
   const [revision, setRevision] = useState(0);
+  const [contentHydrated, setContentHydrated] = useState(false);
+  const [publishStatus, setPublishStatus] = useState<SitePublishStatus>("idle");
+  const [publishError, setPublishError] = useState("");
+  const publishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const contentRef = useRef(content);
+  contentRef.current = content;
+
+  const runPublish = useCallback(async (payload: WeddingSiteContent) => {
+    if (!import.meta.env.PUBLIC_SITE_CONTENT_SAVE_TOKEN?.trim()) {
+      setPublishStatus("local-only");
+      setPublishError("");
+      return;
+    }
+    setPublishStatus("saving");
+    const result = await publishSiteContent(payload);
+    if (result.ok) {
+      setPublishStatus("saved");
+      setPublishError("");
+    } else {
+      setPublishStatus("error");
+      setPublishError(result.message);
+    }
+  }, []);
+
+  const schedulePublish = useCallback(
+    (payload: WeddingSiteContent) => {
+      if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
+      publishTimerRef.current = setTimeout(() => {
+        publishTimerRef.current = null;
+        void runPublish(payload);
+      }, 900);
+    },
+    [runPublish]
+  );
+
+  const publishNow = useCallback(async () => {
+    if (publishTimerRef.current) {
+      clearTimeout(publishTimerRef.current);
+      publishTimerRef.current = null;
+    }
+    await runPublish(contentRef.current);
+  }, [runPublish]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const published = await fetchPublishedSiteContent();
+      if (cancelled) return;
+      if (published?.content && isPlainObject(published.content)) {
+        const defaults = cloneDefaultContent();
+        let merged = deepMerge(defaults, published.content) as WeddingSiteContent;
+        const repaired = applyContentRepairs(merged);
+        merged = repaired.content;
+        setContent(merged);
+        persistLocalContent(merged);
+        setRevision(r => r + 1);
+      }
+      if (!cancelled) setContentHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
+    },
+    []
+  );
 
   const patchContent = useCallback<WeddingContentValue["patchContent"]>(arg => {
     setContent(prev => {
       const partial = typeof arg === "function" ? arg(prev) : arg;
       const next = deepMerge(prev, partial) as typeof WEDDING_CONTENT_DEFAULT;
-      try {
-        localStorage.setItem(WEDDING_SITE_STORAGE_KEY, JSON.stringify(next));
-      } catch (e) {
-        console.warn("Could not save wedding content", e);
-      }
+      persistLocalContent(next);
+      schedulePublish(next);
       return next;
     });
     setRevision(r => r + 1);
-  }, []);
+  }, [schedulePublish]);
 
   const replaceContent = useCallback<WeddingContentValue["replaceContent"]>(nextFull => {
-    const next = deepMerge(cloneDefaultContent(), nextFull && typeof nextFull === "object" ? nextFull : {}) as typeof WEDDING_CONTENT_DEFAULT;
-    setContent(next);
-    try {
-      localStorage.setItem(WEDDING_SITE_STORAGE_KEY, JSON.stringify(next));
-    } catch (e) {
-      console.warn("Could not save wedding content", e);
-    }
+    const validated = validateSiteContentImport(nextFull);
+    const base = validated.ok ? validated.value : {};
+    const next = deepMerge(cloneDefaultContent(), base) as typeof WEDDING_CONTENT_DEFAULT;
+    const repaired = applyContentRepairs(next);
+    setContent(repaired.content);
+    persistLocalContent(repaired.content);
+    void runPublish(repaired.content);
     setRevision(r => r + 1);
-  }, []);
+  }, [runPublish]);
 
   const resetToDefaults = useCallback(() => {
     const next = cloneDefaultContent();
@@ -592,13 +764,36 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.removeItem(WEDDING_SITE_STORAGE_KEY);
       localStorage.removeItem(WEDDING_SITE_STORAGE_KEY_LEGACY_V1);
-    } catch (e) { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
+    void runPublish(next);
     setRevision(r => r + 1);
-  }, []);
+  }, [runPublish]);
 
   const value = useMemo(
-    () => ({ content, patchContent, replaceContent, resetToDefaults, revision }),
-    [content, patchContent, replaceContent, resetToDefaults, revision]
+    () => ({
+      content,
+      patchContent,
+      replaceContent,
+      resetToDefaults,
+      revision,
+      contentHydrated,
+      publishStatus,
+      publishError,
+      publishNow,
+    }),
+    [
+      content,
+      patchContent,
+      replaceContent,
+      resetToDefaults,
+      revision,
+      contentHydrated,
+      publishStatus,
+      publishError,
+      publishNow,
+    ]
   );
 
   return <WeddingContentContext.Provider value={value}>{children}</WeddingContentContext.Provider>;

@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import {
   useWeddingContent,
   WEDDING_CONTENT_DEFAULT,
+  validateSiteContentImport,
   type WeddingContentValue,
 } from "../lib/weddingContent";
+import { EDITOR_TABS, SITE_PATHS, editorTabLabel } from "../lib/sitePages";
 import { AdminImageUpload } from "./AdminImageUpload";
 
 const ADMIN_SESSION_KEY = "wedding_site_admin_unlocked";
@@ -53,6 +55,36 @@ function AdminTextField({ label, value, onChange, multiline, rows = 3 }: AdminTe
   );
 }
 
+function AdminPublishBanner({
+  publishStatus,
+  publishError,
+  onPublishNow,
+}: {
+  publishStatus: WeddingContentValue["publishStatus"];
+  publishError: string;
+  onPublishNow: () => void;
+}) {
+  const hasToken = Boolean(import.meta.env.PUBLIC_SITE_CONTENT_SAVE_TOKEN?.trim());
+  let statusLine = "Saving to this browser only — guests will not see changes.";
+  if (hasToken) {
+    if (publishStatus === "saving") statusLine = "Publishing for all visitors…";
+    else if (publishStatus === "saved") statusLine = "Published — all visitors see your latest edits.";
+    else if (publishStatus === "error") statusLine = publishError || "Publish failed.";
+    else if (publishStatus === "local-only") statusLine = "Saved locally. Set PUBLIC_SITE_CONTENT_SAVE_TOKEN to publish.";
+    else statusLine = "Edits auto-publish for all visitors. Download JSON in Backup before big changes.";
+  }
+  return (
+    <div className={`adm-banner${publishStatus === "error" ? " adm-banner--err" : ""}`}>
+      <p className="adm-banner__text">{statusLine}</p>
+      {hasToken ? (
+        <button type="button" className="adm-btn adm-btn--sm adm-btn--ghost" onClick={() => void onPublishNow()}>
+          Publish now
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function AdminSectionToggles({ content, patchContent }: AdminSectionTogglesProps) {
   const keys: [SectionKey, string][] = [
     ["hero", "Hero"],
@@ -69,7 +101,10 @@ function AdminSectionToggles({ content, patchContent }: AdminSectionTogglesProps
   ];
   return (
     <div className="adm-stack">
-      <p className="adm-hint">Uncheck to hide a section from the page and navigation.</p>
+      <p className="adm-hint">
+        Uncheck to hide a section from its page and from the site navigation. Content is split across
+        Home, Story, Wedding, Travel, RSVP, Gallery, Gifts, and Guests.
+      </p>
       {keys.map(([k, label]) => (
         <label key={k} className="adm-check">
           <input
@@ -85,7 +120,15 @@ function AdminSectionToggles({ content, patchContent }: AdminSectionTogglesProps
 }
 
 function ClientAdmin() {
-  const { content, patchContent, replaceContent, resetToDefaults } = useWeddingContent();
+  const {
+    content,
+    patchContent,
+    replaceContent,
+    resetToDefaults,
+    publishStatus,
+    publishError,
+    publishNow,
+  } = useWeddingContent();
   const [hasSession, setHasSession] = useState(() => {
     try {
       return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1";
@@ -99,6 +142,7 @@ function ClientAdmin() {
   const [pinError, setPinError] = useState("");
   const [tab, setTab] = useState("sections");
   const [importText, setImportText] = useState("");
+  const activeTab = EDITOR_TABS.find(t => t.id === tab);
 
   useEffect(() => {
     if (!isAdminUrl()) return;
@@ -196,9 +240,14 @@ function ClientAdmin() {
   const importJson = () => {
     try {
       const parsed = JSON.parse(importText);
-      replaceContent(parsed);
+      const validated = validateSiteContentImport(parsed);
+      if (!validated.ok) {
+        alert(validated.message);
+        return;
+      }
+      replaceContent(validated.value);
       setImportText("");
-      alert("Imported successfully.");
+      alert("Imported and published successfully.");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       alert("Invalid JSON: " + msg);
@@ -282,29 +331,66 @@ function ClientAdmin() {
             </div>
           </div>
           <div className="adm-tabs">
-            {[
-              ["sections", "Sections"],
-              ["site", "Site & admin"],
-              ["hero", "Hero"],
-              ["story", "Story"],
-              ["details", "Details"],
-              ["travel", "Travel & logistics"],
-              ["rsvp", "RSVP"],
-              ["party", "Party"],
-              ["gallery", "Gallery"],
-              ["registry", "Registry"],
-              ["stream", "Live"],
-              ["invitation", "Guests"],
-              ["footer", "Footer"],
-              ["backup", "Backup"]
-            ].map(([id, lbl]) => (
-              <button type="button" key={id} className={`adm-tab ${tab === id ? "adm-tab--on" : ""}`} onClick={() => setTab(id)}>
-                {lbl}
+            {EDITOR_TABS.map(t => (
+              <button
+                type="button"
+                key={t.id}
+                className={`adm-tab ${tab === t.id ? "adm-tab--on" : ""}`}
+                onClick={() => setTab(t.id)}
+              >
+                {editorTabLabel(t)}
               </button>
             ))}
           </div>
+          {activeTab?.page ? (
+            <div className="adm-preview-bar">
+              <a
+                className="adm-btn adm-btn--sm"
+                href={SITE_PATHS[activeTab.page]}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View {SITE_PATHS[activeTab.page]} ↗
+              </a>
+            </div>
+          ) : null}
           <div className="adm-shell__body">
+            <AdminPublishBanner
+              publishStatus={publishStatus}
+              publishError={publishError}
+              onPublishNow={publishNow}
+            />
             {tab === "sections" && <AdminSectionToggles content={content} patchContent={patchContent} />}
+
+            {tab === "home" && (
+              <div className="adm-stack">
+                <p className="adm-hint">
+                  Story, RSVP, and gifts use their own tabs on the home page. Edit the &quot;More&quot; grid cards below.
+                </p>
+                <AdminTextField label="More — eyebrow" value={content.homeHub?.moreEyebrow} onChange={v => patchContent({ homeHub: { moreEyebrow: v } })} />
+                <AdminTextField label="More — title" value={content.homeHub?.moreTitle} onChange={v => patchContent({ homeHub: { moreTitle: v } })} />
+                {(content.homeHub?.cards || []).map((card, i) => (
+                  <fieldset key={card.id || i} className="adm-fieldset">
+                    <legend>Card: {card.id}</legend>
+                    <AdminTextField label="Eyebrow" value={card.eyebrow} onChange={v => {
+                      const cards = [...(content.homeHub?.cards || [])];
+                      cards[i] = { ...cards[i], eyebrow: v };
+                      patchContent({ homeHub: { cards } });
+                    }} />
+                    <AdminTextField label="Title" value={card.title} onChange={v => {
+                      const cards = [...(content.homeHub?.cards || [])];
+                      cards[i] = { ...cards[i], title: v };
+                      patchContent({ homeHub: { cards } });
+                    }} />
+                    <AdminTextField label="Description" value={card.lede} onChange={v => {
+                      const cards = [...(content.homeHub?.cards || [])];
+                      cards[i] = { ...cards[i], lede: v };
+                      patchContent({ homeHub: { cards } });
+                    }} multiline rows={2} />
+                  </fieldset>
+                ))}
+              </div>
+            )}
 
             {tab === "site" && (
               <div className="adm-stack">
@@ -352,6 +438,11 @@ function ClientAdmin() {
                 <AdminTextField label="Title emphasis word" value={content.story?.titleEm} onChange={v => patchContent({ story: { titleEm: v } })} />
                 <AdminTextField label="Title line after em" value={content.story?.titleLine2} onChange={v => patchContent({ story: { titleLine2: v } })} />
                 <AdminTextField label="Intro paragraph" value={content.story?.lede} onChange={v => patchContent({ story: { lede: v } })} multiline rows={4} />
+                <AdminImageUpload
+                  label="Home page photo (optional — uses chapter 1 image if empty)"
+                  value={content.story?.homeImageUrl}
+                  onChange={v => patchContent({ story: { homeImageUrl: v } })}
+                />
                 {(content.story?.chapters || []).map((ch, i) => (
                   <fieldset key={i} className="adm-fieldset">
                     <legend>Chapter {i + 1}</legend>
@@ -807,7 +898,10 @@ function ClientAdmin() {
 
             {tab === "backup" && (
               <div className="adm-stack">
-                <p className="adm-hint">Edits save to this browser automatically. Export JSON before clearing cache.</p>
+                <p className="adm-hint">
+                  Edits auto-publish for all visitors when <code className="adm-code">PUBLIC_SITE_CONTENT_SAVE_TOKEN</code> is
+                  set. This browser also keeps a local copy. Export JSON before big changes or reset.
+                </p>
                 <button type="button" className="adm-btn" onClick={exportJson}>Download JSON</button>
                 <textarea className="adm-field__input adm-json" placeholder="Paste JSON to import…" value={importText} onChange={e => setImportText(e.target.value)} rows={8} />
                 <button type="button" className="adm-btn" onClick={importJson}>Import JSON</button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
 import { parseApiErrorCode, parseApiErrorMessage } from "../../lib/api/json";
 import { sanitizePosterHtml } from "../../lib/sanitize-poster";
+import { SITE_PATHS } from "../../lib/sitePages";
 import { Ph } from "./Core";
 
 type RsvpForm = {
@@ -243,14 +244,16 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
                 {data.attendance === "yes"
                   ? `A confirmation has been sent to ${data.email || "your inbox"}. Your seat for ${data.guests} ${data.guests === 1 ? "person" : "people"} is held at ${r.confirmVenue || "Agape House & El-Wak Stadium"}.`
                   : r.successNoBody}
-                {import.meta.env.PUBLIC_SUPABASE_URL && data.attendance === "yes" ? (
+                {import.meta.env.PUBLIC_SUPABASE_URL ? (
                   <>
                     {" "}
-                    After signing in with the same email, you can share photos in{" "}
-                    <a href="#guest-upload" style={{ color: "var(--champagne)" }}>
-                      Guest photos
+                    Sign in anytime on{" "}
+                    <a href={`${SITE_PATHS.guest}#my-guest`} style={{ color: "var(--champagne)" }}>
+                      My guest
                     </a>
-                    .
+                    {data.attendance === "yes"
+                      ? " to see your reply and share photos."
+                      : " to see your reply."}
                   </>
                 ) : null}
               </p>

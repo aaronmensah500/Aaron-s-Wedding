@@ -30,4 +30,6 @@ interface ImportMetaEnv {
    * Generate: `openssl rand -hex 24`
    */
   readonly PUBLIC_ADMIN_UPLOAD_TOKEN?: string;
+  /** Bearer token for PUT /api/site-content — publishes editor changes for all visitors. */
+  readonly PUBLIC_SITE_CONTENT_SAVE_TOKEN?: string;
 }

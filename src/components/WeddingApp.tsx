@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { WeddingContentProvider, useWeddingContent } from "../lib/weddingContent";
+import type { SitePageId } from "../lib/sitePages";
 import { ClientAdmin } from "./AdminPanel";
 import {
   useTweaks,
@@ -9,6 +10,8 @@ import {
   TweakSelect,
 } from "./TweaksPanel";
 import { useReveal, Nav, Hero, LoveStory, Details } from "./wedding/Core";
+import { HomeHub } from "./wedding/HomeHub";
+import { HomeStoryTeaser } from "./wedding/HomeStoryTeaser";
 import { TravelLogistics } from "./wedding/TravelLogistics";
 import { RSVP, BridalParty, Gallery } from "./wedding/RsvpBlock";
 import { Registry, Livestream, GuestExperience, Footer } from "./wedding/ExtrasBlock";
@@ -94,7 +97,9 @@ function applyTweaks(t: TweakState) {
   r.style.setProperty("--serif", SERIFS[t.serif] || SERIFS.cormorant);
 }
 
-function App() {
+type AppProps = { page: SitePageId };
+
+function App({ page }: AppProps) {
   const [adminUrlUnlock, setAdminUrlUnlock] = useState(readAdminQuery);
   const [tweaksRaw, setTweak] = useTweaks({ ...TWEAK_DEFAULTS });
   const tweaks = tweaksRaw as TweakState;
@@ -117,27 +122,31 @@ function App() {
   }, [tweaks]);
 
   const sec = content.sections || {};
+  const showFooter = sec.footer !== false;
 
   /** Dev always; production when env is set or when couple opens `?admin=1` (PIN still required). */
   const showSiteEditor =
     import.meta.env.DEV || import.meta.env.PUBLIC_SHOW_SITE_EDITOR === "true" || adminUrlUnlock;
 
   return (
-    <div className="app">
-      <Nav key={revision} />
-      {sec.hero !== false && <Hero key={revision} countdownTarget={countdownTarget} />}
-      {sec.story !== false && <LoveStory />}
-      {sec.details !== false && <Details />}
-      {sec.travel !== false && <TravelLogistics />}
-      {sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
-      {sec.party !== false && <BridalParty />}
-      {sec.gallery !== false && <Gallery />}
-      {sec.registry !== false && <Registry />}
-      {sec.stream !== false && <Livestream />}
-      {sec.invitation !== false && <GuestExperience key={revision} />}
-      {sec.footer !== false && <Footer key={revision} />}
-
-      <GuestPortal />
+    <div className="app" data-page={page}>
+      <Nav currentPage={page} />
+      {page === "home" && sec.hero !== false && <Hero key={revision} countdownTarget={countdownTarget} />}
+      {page === "home" && sec.story !== false && <HomeStoryTeaser />}
+      {page === "home" && sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
+      {page === "home" && sec.registry !== false && <Registry compact />}
+      {page === "home" && <HomeHub />}
+      {page === "story" && sec.story !== false && <LoveStory />}
+      {page === "wedding" && sec.details !== false && <Details />}
+      {page === "wedding" && sec.party !== false && <BridalParty />}
+      {page === "travel" && sec.travel !== false && <TravelLogistics />}
+      {page === "rsvp" && sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
+      {page === "gallery" && sec.gallery !== false && <Gallery />}
+      {page === "registry" && sec.registry !== false && <Registry />}
+      {page === "registry" && sec.stream !== false && <Livestream />}
+      {page === "guest" && sec.invitation !== false && <GuestExperience key={revision} />}
+      {page === "guest" && <GuestPortal />}
+      {showFooter && <Footer key={revision} />}
 
       {showSiteEditor ? (
         <>
@@ -171,10 +180,12 @@ function App() {
   );
 }
 
-export default function WeddingApp() {
+type WeddingAppProps = { page?: SitePageId };
+
+export default function WeddingApp({ page = "home" }: WeddingAppProps) {
   return (
     <WeddingContentProvider>
-      <App />
+      <App page={page} />
     </WeddingContentProvider>
   );
 }

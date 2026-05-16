@@ -2,7 +2,7 @@
 
 ## Threat model
 
-Guests are semi-trusted: anyone can POST `/api/rsvp` until rate limits kick in. Authenticated guests can read/write only what **RLS** allows. Site editors with the admin PIN can change **client-side** content (stored in `localStorage`); that is not server-side authorization.
+Guests are semi-trusted: anyone can POST `/api/rsvp` until rate limits kick in. Authenticated guests can read/write only what **RLS** allows. Site editors with the admin PIN can change published copy via **`PUT /api/site-content`** when `PUBLIC_SITE_CONTENT_SAVE_TOKEN` is set (stored in Supabase `wedding_site_content`); the PIN is not checked on that API — protect the save token like a password.
 
 ## Implemented controls
 
@@ -15,9 +15,11 @@ Guests are semi-trusted: anyone can POST `/api/rsvp` until rate limits kick in. 
 | **XSS (poster HTML)** | `dangerouslySetInnerHTML` paths use **`sanitizePosterHtml`** (`dompurify`) in `RsvpBlock`. |
 | **Structured errors** | Magic-link failures return generic `otp_send_failed` message (no raw Supabase text to clients). |
 
-## Admin PIN
+## Admin PIN and published content
 
-The PIN in editable content is a **UX gate**, not cryptographic protection of APIs. Do not expose sensitive operations based on it alone.
+The PIN in editable content is a **UX gate** for opening the editor panel, not cryptographic protection of APIs. **`PUBLIC_SITE_CONTENT_SAVE_TOKEN`** (browser-readable) authorizes publishing; anyone who extracts it can overwrite site copy. Rotate if leaked.
+
+Published copy is read by all visitors via **`GET /api/site-content`**. Local `localStorage` is a cache only.
 
 ## Global HTTP middleware (Astro)
 

@@ -3,16 +3,18 @@ import { useWeddingContent } from "../../lib/weddingContent";
 import { Ph, Countdown } from "./Core";
 import { downloadWeddingIcs } from "../../lib/calendar";
 import { QrCodeBlock } from "./QrCodeBlock";
+import { SITE_PATHS } from "../../lib/sitePages";
 import { buildSiteDeepLink } from "../../lib/siteUrl";
 import { openPaystackInline, type PaystackCurrency } from "../../lib/paystack";
 
 const PAYSTACK_CURRENCIES = new Set<string>(["GHS", "NGN", "USD", "ZAR", "KES", "XOF", "XAF"]);
+const REGISTRY_PRESET_EXCLUDE = new Set([2500, 5000]);
 
 function parseAmountPresets(csv: string | undefined, fallback: number[]): number[] {
   const parts = (csv || "")
     .split(/[\s,;]+/)
     .map(s => parseInt(s.replace(/\D/g, ""), 10))
-    .filter(n => Number.isFinite(n) && n > 0);
+    .filter(n => Number.isFinite(n) && n > 0 && !REGISTRY_PRESET_EXCLUDE.has(n));
   return parts.length ? parts : fallback;
 }
 
@@ -26,11 +28,13 @@ function pickPaystackCurrency(regCode: string | undefined): PaystackCurrency {
 // ============================================================
 // REGISTRY
 // ============================================================
-export function Registry() {
+type RegistryProps = { compact?: boolean };
+
+export function Registry({ compact = false }: RegistryProps) {
   const { content } = useWeddingContent();
   const reg = content.registry || {};
   const presets = useMemo(
-    () => parseAmountPresets(reg.amountPresetCsv as string | undefined, [200, 500, 1000, 2500, 5000]),
+    () => parseAmountPresets(reg.amountPresetCsv as string | undefined, [200, 500, 1000]),
     [reg.amountPresetCsv]
   );
   const currency = useMemo(() => pickPaystackCurrency(reg.payCurrencyCode as string | undefined), [reg.payCurrencyCode]);
@@ -124,6 +128,13 @@ export function Registry() {
         onSuccess: reference => {
           setPaidRef(reference);
           setPaying(false);
+          if (import.meta.env.PUBLIC_SUPABASE_URL) {
+            void fetch("/api/gifts/record", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: em, reference }),
+            }).catch(() => undefined);
+          }
         },
         onClose: () => {
           setPaying(false);
@@ -136,7 +147,7 @@ export function Registry() {
   };
 
   return (
-    <section id="registry" className="section">
+    <section id="registry" className={`section${compact ? " section--beige registry--home" : ""}`}>
       <div className="section__head reveal">
         <div>
           <div className="eyebrow">{reg.eyebrow} <span className="dot" /> {reg.eyebrowLabel}</div>
@@ -145,8 +156,10 @@ export function Registry() {
         <p className="section__lede">{reg.lede}</p>
       </div>
 
-      <div className="registry__grid reveal-stagger">
-        <article className="registry-card">
+      <div className={`registry__grid reveal-stagger${compact ? " registry__grid--compact" : ""}`}>
+        <article className={`registry-card${compact ? " registry-card--horizontal" : ""}`}>
+          <div className={compact ? "registry-card__split" : undefined}>
+            <div className={compact ? "registry-card__col registry-card__col--intro" : undefined}>
           <div className="registry-card__head">
             <div>
               <div className="eyebrow">{reg.fundEyebrow}</div>
@@ -154,7 +167,7 @@ export function Registry() {
             </div>
             <div className="mono" style={{ color: "var(--champagne)" }}>{reg.currencies}</div>
           </div>
-          <p className="section__lede" style={{ maxWidth: "100%" }}>{reg.fundBody}</p>
+          <p className="section__lede registry-card__lede">{reg.fundBody}</p>
 
           <div className="contribution-amts">
             {presets.map(p => (
@@ -168,7 +181,7 @@ export function Registry() {
           </div>
 
           {customOpen && (
-            <div className="field" style={{ marginTop: 16 }}>
+            <div className="field registry-card__custom-amt">
               <label htmlFor="registry-custom-amt">Amount ({currency})</label>
               <input
                 id="registry-custom-amt"
@@ -181,28 +194,61 @@ export function Registry() {
             </div>
           )}
 
-          <div className="field" style={{ marginTop: 20 }}>
-            <label htmlFor="registry-gift-email">{reg.contributeEmailLabel}</label>
-            <input
-              id="registry-gift-email"
-              type="email"
-              autoComplete="email"
-              placeholder={reg.contributeEmailPlaceholder as string | undefined}
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="field" style={{ marginTop: 12 }}>
-            <label htmlFor="registry-gift-name">{reg.contributeNameLabel}</label>
-            <input
-              id="registry-gift-name"
-              type="text"
-              autoComplete="name"
-              placeholder={reg.contributeNamePlaceholder as string | undefined}
-              value={giftName}
-              onChange={e => setGiftName(e.target.value)}
-            />
-          </div>
+          {compact && (
+            <div className="registry-card__guest-fields">
+              <div className="field">
+                <label htmlFor="registry-gift-email">{reg.contributeEmailLabel}</label>
+                <input
+                  id="registry-gift-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder={reg.contributeEmailPlaceholder as string | undefined}
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="registry-gift-name">{reg.contributeNameLabel}</label>
+                <input
+                  id="registry-gift-name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder={reg.contributeNamePlaceholder as string | undefined}
+                  value={giftName}
+                  onChange={e => setGiftName(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+            </div>
+
+            <div className={compact ? "registry-card__col registry-card__col--checkout" : undefined}>
+          {!compact && (
+            <>
+              <div className="field" style={{ marginTop: 20 }}>
+                <label htmlFor="registry-gift-email">{reg.contributeEmailLabel}</label>
+                <input
+                  id="registry-gift-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder={reg.contributeEmailPlaceholder as string | undefined}
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="field" style={{ marginTop: 12 }}>
+                <label htmlFor="registry-gift-name">{reg.contributeNameLabel}</label>
+                <input
+                  id="registry-gift-name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder={reg.contributeNamePlaceholder as string | undefined}
+                  value={giftName}
+                  onChange={e => setGiftName(e.target.value)}
+                />
+              </div>
+            </>
+          )}
 
           <div className="payment-card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -227,36 +273,56 @@ export function Registry() {
           {paidRef && (
             <p className="registry__hint registry__hint--ok">
               {reg.contributePaidNote} <strong className="mono">{paidRef}</strong>
+              {import.meta.env.PUBLIC_SUPABASE_URL ? (
+                <>
+                  {" "}
+                  <a href={`${SITE_PATHS.guest}#my-guest`} style={{ color: "var(--burgundy)" }}>
+                    View on My guest
+                  </a>
+                </>
+              ) : null}
             </p>
           )}
 
           <button
             type="button"
-            className="btn btn--gold"
-            style={{ marginTop: 24, width: "100%" }}
+            className={`btn btn--gold${compact ? " registry-card__submit" : ""}`}
+            style={compact ? undefined : { marginTop: 24, width: "100%" }}
             disabled={!effectiveAmt || paying}
             onClick={() => void handleContribute()}
           >
             {paying ? "Opening checkout…" : <>Contribute {effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"} <span className="arrow">→</span></>}
           </button>
-        </article>
-
-        <article className="registry-card qr-card">
-          <div className="registry-card__head">
-            <div>
-              <div className="eyebrow">{reg.qrEyebrow}</div>
-              <h4>{reg.qrTitle}</h4>
             </div>
           </div>
-          <div className="qr-block">
-            <QrCodeBlock value={registryQrPayload} label={reg.qrTitle as string} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--muted)" }}>
-            <span>{qrHostHint || "—"}</span>
-            <span style={{ color: "var(--champagne)" }}>{reg.qrHint}</span>
-          </div>
         </article>
+
+        {!compact ? (
+          <article className="registry-card qr-card">
+            <div className="registry-card__head">
+              <div>
+                <div className="eyebrow">{reg.qrEyebrow}</div>
+                <h4>{reg.qrTitle}</h4>
+              </div>
+            </div>
+            <div className="qr-block">
+              <QrCodeBlock value={registryQrPayload} label={reg.qrTitle as string} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--muted)" }}>
+              <span>{qrHostHint || "—"}</span>
+              <span style={{ color: "var(--champagne)" }}>{reg.qrHint}</span>
+            </div>
+          </article>
+        ) : null}
       </div>
+
+      {compact ? (
+        <p className="registry__more reveal">
+          <a href={SITE_PATHS.registry} className="btn btn--ghost">
+            Livestream &amp; more <span className="arrow">→</span>
+          </a>
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -425,7 +491,7 @@ export function GuestExperience() {
             <p>{inv.card3Body}</p>
           </div>
           <div className="guest-card__rsvp">
-            <a href="#rsvp" className="btn btn--gold" style={{ width: "100%", justifyContent: "center" }}>
+            <a href={SITE_PATHS.rsvp} className="btn btn--gold" style={{ width: "100%", justifyContent: "center" }}>
               {inv.card3CtaLabel} <span className="arrow">→</span>
             </a>
           </div>
