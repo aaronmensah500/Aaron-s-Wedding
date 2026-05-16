@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { authorizeAdminBearer } from "../../lib/adminPinServer";
 import { jsonError, jsonOk } from "../../lib/api/json";
 import { getServiceSupabase } from "../../lib/supabase/service";
 import { WEDDING_SLUG } from "../../lib/weddingSlug";
@@ -15,10 +16,6 @@ function isMissingSiteContentTable(message: string): boolean {
       m.includes("schema cache") ||
       m.includes("relation"))
   );
-}
-
-function writeToken(): string | undefined {
-  return import.meta.env.PUBLIC_SITE_CONTENT_SAVE_TOKEN?.trim() || undefined;
 }
 
 export const GET: APIRoute = async () => {
@@ -53,14 +50,9 @@ export const GET: APIRoute = async () => {
 };
 
 export const PUT: APIRoute = async ({ request }) => {
-  const token = writeToken();
-  if (!token) {
-    return jsonError("NOT_CONFIGURED", 503, "Site content publishing is not configured.");
-  }
-
   const auth = (request.headers.get("Authorization") ?? "").trim();
-  if (auth !== `Bearer ${token}`) {
-    return jsonError("UNAUTHORIZED", 401, "Invalid save token.");
+  if (!(await authorizeAdminBearer(auth))) {
+    return jsonError("UNAUTHORIZED", 401, "Invalid PIN.");
   }
 
   let body: unknown;

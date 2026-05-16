@@ -19,17 +19,16 @@ export async function fetchPublishedSiteContent(): Promise<PublishedSiteContent 
   }
 }
 
-export async function publishSiteContent(content: unknown): Promise<{ ok: true } | { ok: false; message: string }> {
-  const token = import.meta.env.PUBLIC_SITE_CONTENT_SAVE_TOKEN?.trim();
-  if (!token) {
-    return { ok: false, message: "Publishing is not configured (missing PUBLIC_SITE_CONTENT_SAVE_TOKEN)." };
-  }
+export async function publishSiteContent(
+  content: unknown,
+  pin: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
   try {
     const res = await fetch("/api/site-content", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${String(pin ?? "").trim()}`,
       },
       body: JSON.stringify({ content }),
     });

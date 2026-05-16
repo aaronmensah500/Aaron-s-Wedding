@@ -680,7 +680,8 @@ type WeddingContentValue = {
   contentHydrated: boolean;
   publishStatus: SitePublishStatus;
   publishError: string;
-  publishNow: () => Promise<void>;
+  /** Publish current copy for all visitors (requires editor PIN). */
+  publishForEveryone: (pin: string) => Promise<{ ok: true } | { ok: false; message: string }>;
 };
 
 const WeddingContentContext = createContext<WeddingContentValue | null>(null);
@@ -691,45 +692,27 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
   const [contentHydrated, setContentHydrated] = useState(false);
   const [publishStatus, setPublishStatus] = useState<SitePublishStatus>("idle");
   const [publishError, setPublishError] = useState("");
-  const publishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = useRef(content);
   contentRef.current = content;
 
-  const runPublish = useCallback(async (payload: WeddingSiteContent) => {
-    if (!import.meta.env.PUBLIC_SITE_CONTENT_SAVE_TOKEN?.trim()) {
+  const publishForEveryone = useCallback(async (pin: string) => {
+    if (!import.meta.env.PUBLIC_SUPABASE_URL?.trim()) {
       setPublishStatus("local-only");
       setPublishError("");
-      return;
+      return { ok: false as const, message: "Supabase is not configured." };
     }
     setPublishStatus("saving");
-    const result = await publishSiteContent(payload);
+    setPublishError("");
+    const result = await publishSiteContent(contentRef.current, pin);
     if (result.ok) {
       setPublishStatus("saved");
       setPublishError("");
-    } else {
-      setPublishStatus("error");
-      setPublishError(result.message);
+      return { ok: true as const };
     }
+    setPublishStatus("error");
+    setPublishError(result.message);
+    return { ok: false as const, message: result.message };
   }, []);
-
-  const schedulePublish = useCallback(
-    (payload: WeddingSiteContent) => {
-      if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
-      publishTimerRef.current = setTimeout(() => {
-        publishTimerRef.current = null;
-        void runPublish(payload);
-      }, 900);
-    },
-    [runPublish]
-  );
-
-  const publishNow = useCallback(async () => {
-    if (publishTimerRef.current) {
-      clearTimeout(publishTimerRef.current);
-      publishTimerRef.current = null;
-    }
-    await runPublish(contentRef.current);
-  }, [runPublish]);
 
   useEffect(() => {
     let cancelled = false;
@@ -752,23 +735,17 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  useEffect(
-    () => () => {
-      if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
-    },
-    []
-  );
-
   const patchContent = useCallback<WeddingContentValue["patchContent"]>(arg => {
     setContent(prev => {
       const partial = typeof arg === "function" ? arg(prev) : arg;
       const next = deepMerge(prev, partial) as typeof WEDDING_CONTENT_DEFAULT;
       persistLocalContent(next);
-      schedulePublish(next);
       return next;
     });
+    setPublishStatus(s => (s === "saved" ? "idle" : s));
+    setPublishError("");
     setRevision(r => r + 1);
-  }, [schedulePublish]);
+  }, []);
 
   const replaceContent = useCallback<WeddingContentValue["replaceContent"]>(nextFull => {
     const validated = validateSiteContentImport(nextFull);
@@ -777,9 +754,10 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     const repaired = applyContentRepairs(next);
     setContent(repaired.content);
     persistLocalContent(repaired.content);
-    void runPublish(repaired.content);
+    setPublishStatus("idle");
+    setPublishError("");
     setRevision(r => r + 1);
-  }, [runPublish]);
+  }, []);
 
   const resetToDefaults = useCallback(() => {
     const next = cloneDefaultContent();
@@ -790,9 +768,10 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
-    void runPublish(next);
+    setPublishStatus("idle");
+    setPublishError("");
     setRevision(r => r + 1);
-  }, [runPublish]);
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -804,7 +783,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
       contentHydrated,
       publishStatus,
       publishError,
-      publishNow,
+      publishForEveryone,
     }),
     [
       content,
@@ -815,7 +794,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
       contentHydrated,
       publishStatus,
       publishError,
-      publishNow,
+      publishForEveryone,
     ]
   );
 

@@ -45,14 +45,16 @@ export async function loadAdminGateConfig(): Promise<AdminGateConfig> {
   }
 }
 
-/** Legacy env token or editor PIN (Bearer value). */
+/** Legacy env tokens or editor PIN (Bearer value). */
 export async function authorizeAdminBearer(authHeader: string): Promise<boolean> {
-  const legacy = import.meta.env.PUBLIC_ADMIN_UPLOAD_TOKEN?.trim();
+  const uploadLegacy = import.meta.env.PUBLIC_ADMIN_UPLOAD_TOKEN?.trim();
+  const saveLegacy = import.meta.env.PUBLIC_SITE_CONTENT_SAVE_TOKEN?.trim();
   const raw = authHeader.trim();
   if (!raw.startsWith("Bearer ")) return false;
   const token = raw.slice(7).trim();
 
-  if (legacy && token === legacy) return true;
+  if (uploadLegacy && token === uploadLegacy) return true;
+  if (saveLegacy && token === saveLegacy) return true;
 
   const config = await loadAdminGateConfig();
   return adminPinMatches(token, config);

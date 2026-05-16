@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useWeddingContent, WEDDING_CONTENT_DEFAULT, validateSiteContentImport } from "../lib/weddingContent";
 import { useSiteEditor } from "../lib/siteEditor";
 import { AdminImageUpload } from "./AdminImageUpload";
+import { AdminPinSaveModal } from "./AdminPinSaveModal";
 import { AdminWeddingDateSettings } from "./AdminWeddingDateSettings";
 
 type SheetId = null | "sections" | "site" | "backup" | "advanced" | "arrays";
@@ -265,29 +266,34 @@ function AdminAdvancedPanel() {
 function AdminPublishBanner({
   publishStatus,
   publishError,
-  onPublishNow,
+  canPublish,
+  onSaveForEveryone,
 }: {
   publishStatus: string;
   publishError: string;
-  onPublishNow: () => void;
+  canPublish: boolean;
+  onSaveForEveryone: () => void;
 }) {
-  const hasToken = Boolean(import.meta.env.PUBLIC_SITE_CONTENT_SAVE_TOKEN?.trim());
-  let statusLine = "Saving to this browser only.";
-  if (hasToken) {
-    if (publishStatus === "saving") statusLine = "Publishing…";
-    else if (publishStatus === "saved") statusLine = "Published for all visitors.";
-    else if (publishStatus === "error") statusLine = publishError || "Publish failed.";
-    else if (publishStatus === "local-only") statusLine = "Local only — set save token to publish.";
-    else statusLine = "Edits auto-publish.";
+  let statusLine = "Changes saved on this device only.";
+  if (!canPublish) {
+    statusLine = "Publishing needs Supabase (PUBLIC_SUPABASE_URL + service role on the server).";
+  } else if (publishStatus === "saving") {
+    statusLine = "Publishing…";
+  } else if (publishStatus === "saved") {
+    statusLine = "Published for all visitors.";
+  } else if (publishStatus === "error") {
+    statusLine = publishError || "Publish failed.";
+  } else if (publishStatus === "local-only") {
+    statusLine = "Changes saved on this device only.";
   }
   return (
     <p className="adm-toolbar__status" role="status">
       {statusLine}
-      {hasToken ? (
+      {canPublish && publishStatus !== "saving" ? (
         <>
           {" "}
-          <button type="button" className="adm-btn adm-btn--sm adm-btn--ghost" onClick={() => void onPublishNow()}>
-            Publish now
+          <button type="button" className="adm-btn adm-btn--sm adm-btn--ghost" onClick={onSaveForEveryone}>
+            Save for everyone
           </button>
         </>
       ) : null}
@@ -296,11 +302,27 @@ function AdminPublishBanner({
 }
 
 export function AdminToolbar() {
-  const { content, patchContent, replaceContent, resetToDefaults, publishStatus, publishError, publishNow } =
+  const { content, patchContent, replaceContent, resetToDefaults, publishStatus, publishError, publishForEveryone } =
     useWeddingContent();
   const { lock } = useSiteEditor();
   const [sheet, setSheet] = useState<SheetId>(null);
   const [importText, setImportText] = useState("");
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveModalError, setSaveModalError] = useState("");
+
+  const canPublish = Boolean(import.meta.env.PUBLIC_SUPABASE_URL?.trim());
+  const requirePin = content.admin?.requirePin !== false;
+
+  const handleSavePinSubmit = async (pin: string) => {
+    setSaveModalError("");
+    const result = await publishForEveryone(pin);
+    if (!result.ok) {
+      const msg = result.message.toLowerCase().includes("pin") ? result.message : "Incorrect PIN or publish failed.";
+      setSaveModalError(msg);
+      return;
+    }
+    setSaveModalOpen(false);
+  };
 
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(content, null, 2)], { type: "application/json" });
@@ -339,7 +361,15 @@ export function AdminToolbar() {
   return (
     <>
       <div className="adm-toolbar" role="toolbar" aria-label="Site editor">
-        <AdminPublishBanner publishStatus={publishStatus} publishError={publishError} onPublishNow={publishNow} />
+        <AdminPublishBanner
+          publishStatus={publishStatus}
+          publishError={publishError}
+          canPublish={canPublish}
+          onSaveForEveryone={() => {
+            setSaveModalError("");
+            setSaveModalOpen(true);
+          }}
+        />
         <button type="button" className="adm-btn adm-btn--sm" onClick={() => setSheet("sections")}>
           Sections
         </button>
@@ -359,6 +389,20 @@ export function AdminToolbar() {
           Lock
         </button>
       </div>
+
+      <AdminPinSaveModal
+        open={saveModalOpen}
+        requirePin={requirePin}
+        publishing={publishStatus === "saving"}
+        error={saveModalError}
+        onClose={() => {
+          if (publishStatus !== "saving") {
+            setSaveModalOpen(false);
+            setSaveModalError("");
+          }
+        }}
+        onSubmit={pin => void handleSavePinSubmit(pin)}
+      />
 
       {sheet ? (
         <div className="adm-sheet" role="dialog" aria-modal="true" onClick={() => setSheet(null)}>

@@ -2,7 +2,7 @@
 
 ## Threat model
 
-Guests are semi-trusted: anyone can POST `/api/rsvp` until rate limits kick in. Authenticated guests can read/write only what **RLS** allows. Site editors with the admin PIN can change published copy via **`PUT /api/site-content`** when `PUBLIC_SITE_CONTENT_SAVE_TOKEN` is set (stored in Supabase `wedding_site_content`); the PIN is not checked on that API — protect the save token like a password.
+Guests are semi-trusted: anyone can POST `/api/rsvp` until rate limits kick in. Authenticated guests can read/write only what **RLS** allows. Site editors publish copy via **`PUT /api/site-content`** with the editor PIN in `Authorization: Bearer` (same check as photo upload). Edits stay on the device until they confirm **Save for everyone** and re-enter the PIN.
 
 ## Implemented controls
 
@@ -17,7 +17,7 @@ Guests are semi-trusted: anyone can POST `/api/rsvp` until rate limits kick in. 
 
 ## Admin PIN and published content
 
-The PIN in editable content is a **UX gate** for opening the editor panel, not cryptographic protection of APIs. **`PUBLIC_SITE_CONTENT_SAVE_TOKEN`** (browser-readable) authorizes publishing; anyone who extracts it can overwrite site copy. Rotate if leaked.
+The PIN in published site content is checked server-side for uploads and publishing. **`PUBLIC_SITE_CONTENT_SAVE_TOKEN`** (optional legacy env) also authorizes publish if set — avoid using it; prefer PIN only.
 
 Published copy is read by all visitors via **`GET /api/site-content`**. Local `localStorage` is a cache only.
 
