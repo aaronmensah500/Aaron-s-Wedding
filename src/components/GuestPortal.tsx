@@ -38,6 +38,16 @@ type GiftRow = {
 
 type SignedItem = GuestMediaRow & { signedUrl: string | null };
 
+type PendingUpload = {
+  key: string;
+  file: File;
+  previewUrl: string;
+};
+
+function isVideoFile(file: File): boolean {
+  return file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
+}
+
 type GuestPortalProps = {
   session: Session | null;
   authChecking: boolean;
@@ -82,13 +92,29 @@ export default function GuestPortal({ session, authChecking }: GuestPortalProps)
   const [mediaErr, setMediaErr] = useState("");
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadAlbumId, setUploadAlbumId] = useState("");
+  const [pendingUploads, setPendingUploads] = useState([] as PendingUpload[]);
   const lastLoadedUserId = useRef("");
+  const pendingRef = useRef(pendingUploads);
+  pendingRef.current = pendingUploads;
 
   useEffect(() => {
     if (albums.length && !uploadAlbumId) {
       setUploadAlbumId(String(albums[0]?.id ?? "general"));
     }
   }, [albums, uploadAlbumId]);
+
+  useEffect(() => {
+    return () => {
+      pendingRef.current.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    };
+  }, []);
+
+  useEffect(() => {
+    setPendingUploads(prev => {
+      prev.forEach(p => URL.revokeObjectURL(p.previewUrl));
+      return [];
+    });
+  }, [uploadAlbumId]);
 
   const refreshRsvp = useCallback(async () => {
     if (!sb || !session) return;
@@ -222,22 +248,66 @@ export default function GuestPortal({ session, authChecking }: GuestPortalProps)
     }
   };
 
-  const onPickFiles = async (e: { currentTarget: HTMLInputElement }) => {
+  const onPickFiles = (e: { currentTarget: HTMLInputElement }) => {
     const files = e.currentTarget.files;
-    if (!sb || !session?.user || !files?.length) return;
+    if (!files?.length) return;
+    if (!uploadAlbumId) {
+      setMediaErr("Choose an album before uploading.");
+      e.currentTarget.value = "";
+      return;
+    }
+    setMediaErr("");
+    const added: PendingUpload[] = [];
+    const tooLarge: string[] = [];
+    for (const file of Array.from(files)) {
+      if (file.size > 25 * 1024 * 1024) {
+        tooLarge.push(file.name);
+        continue;
+      }
+      added.push({
+        key: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    }
+    if (tooLarge.length) {
+      setMediaErr(
+        tooLarge.length === 1
+          ? `${tooLarge[0]} is over 25MB.`
+          : `${tooLarge.length} files are over 25MB each.`
+      );
+    }
+    if (added.length) setPendingUploads(prev => [...prev, ...added]);
+    e.currentTarget.value = "";
+  };
+
+  const removePending = (key: string) => {
+    setPendingUploads(prev => {
+      const item = prev.find(p => p.key === key);
+      if (item) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter(p => p.key !== key);
+    });
+  };
+
+  const clearPending = () => {
+    setPendingUploads(prev => {
+      prev.forEach(p => URL.revokeObjectURL(p.previewUrl));
+      return [];
+    });
+  };
+
+  const submitPendingUploads = async () => {
+    if (!sb || !session?.user || !pendingUploads.length) return;
     if (!uploadAlbumId) {
       setMediaErr("Choose an album before uploading.");
       return;
     }
     setUploadBusy(true);
     setMediaErr("");
+    const uid = session.user.id;
+    let failed = false;
     try {
-      const uid = session.user.id;
-      for (const file of Array.from(files)) {
-        if (file.size > 25 * 1024 * 1024) {
-          setMediaErr("Each file must be 25MB or smaller.");
-          continue;
-        }
+      for (const { file } of pendingUploads) {
         const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
         const path = `${uid}/${Date.now()}-${safe}`;
         const { error: upErr } = await sb.storage.from("guest-media").upload(path, file, {
@@ -246,7 +316,8 @@ export default function GuestPortal({ session, authChecking }: GuestPortalProps)
         });
         if (upErr) {
           setMediaErr(upErr.message);
-          continue;
+          failed = true;
+          break;
         }
         const { error: insErr } = await sb.from("guest_media").insert({
           wedding_slug: WEDDING_SLUG,
@@ -255,12 +326,18 @@ export default function GuestPortal({ session, authChecking }: GuestPortalProps)
           object_path: path,
           original_name: file.name,
         });
-        if (insErr) setMediaErr(insErr.message);
+        if (insErr) {
+          setMediaErr(insErr.message);
+          failed = true;
+          break;
+        }
       }
-      await refreshMedia();
+      if (!failed) {
+        clearPending();
+        await refreshMedia();
+      }
     } finally {
       setUploadBusy(false);
-      e.currentTarget.value = "";
     }
   };
 
@@ -429,71 +506,19 @@ export default function GuestPortal({ session, authChecking }: GuestPortalProps)
                   Site editor: use <strong>Edit site</strong> on any page (toolbar) after signing in here.
                 </p>
               ) : null}
-              {rsvp ? (
-                <section className="guest-portal__panel" aria-labelledby="my-rsvp-title">
-                  <h3 id="my-rsvp-title" className="guest-portal__panel-title">
-                    Your RSVP
-                  </h3>
-                  {rsvpErr ? (
-                    <p className="guest-portal__err" role="alert">
-                      {rsvpErr}
-                    </p>
-                  ) : null}
-                  <dl className="guest-portal__dl">
-                    <div>
-                      <dt>Reply</dt>
-                      <dd>{rsvp.attendance === "yes" ? "Joyfully attending" : "Regretfully cannot attend"}</dd>
-                    </div>
-                    {rsvp.attendance === "yes" ? (
-                      <>
-                        <div>
-                          <dt>Events</dt>
-                          <dd>{rsvp.events?.length ? rsvp.events.join(", ") : "—"}</dd>
-                        </div>
-                        <div>
-                          <dt>Guests</dt>
-                          <dd>{rsvp.guests}</dd>
-                        </div>
-                        <div>
-                          <dt>Dietary</dt>
-                          <dd>{rsvp.diet?.length ? rsvp.diet.join(", ") : "None noted"}</dd>
-                        </div>
-                        {rsvp.song ? (
-                          <div>
-                            <dt>Song request</dt>
-                            <dd>{rsvp.song}</dd>
-                          </div>
-                        ) : null}
-                      </>
-                    ) : null}
-                    {rsvp.note ? (
-                      <div>
-                        <dt>Note</dt>
-                        <dd>{rsvp.note}</dd>
-                      </div>
-                    ) : null}
-                    <div>
-                      <dt>Last updated</dt>
-                      <dd>{formatWhen(rsvp.updated_at)}</dd>
-                    </div>
-                  </dl>
-                  <p className="guest-portal__fine">
-                    Need to change something? <a href={SITE_PATHS.rsvp}>Submit RSVP again</a> with the same email.
-                  </p>
-                </section>
-              ) : (
+              {rsvpErr ? (
+                <p className="guest-portal__err" role="alert">
+                  {rsvpErr}
+                </p>
+              ) : null}
+              {!rsvp && !rsvpErr ? (
                 <section className="guest-portal__panel">
                   <h3 className="guest-portal__panel-title">Your RSVP</h3>
-                  {rsvpErr ? (
-                    <p className="guest-portal__err" role="alert">
-                      {rsvpErr}
-                    </p>
-                  ) : null}
                   <p className="guest-portal__hint">
                     No RSVP on file for this email. <a href={SITE_PATHS.rsvp}>Reply here</a>.
                   </p>
                 </section>
-              )}
+              ) : null}
 
               <section className="guest-portal__panel" aria-labelledby="my-gifts-title">
                 <h3 id="my-gifts-title" className="guest-portal__panel-title">
@@ -555,7 +580,7 @@ export default function GuestPortal({ session, authChecking }: GuestPortalProps)
                     </div>
                     <div className="guest-portal__upload">
                       <label className="btn btn--gold guest-portal__file-btn">
-                        {uploadBusy ? "Uploading…" : "Choose photos or videos"}
+                        Choose photos or videos
                         <input
                           type="file"
                           accept="image/*,video/*"
@@ -565,8 +590,59 @@ export default function GuestPortal({ session, authChecking }: GuestPortalProps)
                           onChange={onPickFiles}
                         />
                       </label>
-                      <span className="guest-portal__fine">Up to 25MB per file. Photos appear on the public gallery.</span>
+                      <span className="guest-portal__fine">
+                        Up to 25MB per file. Review your selection, then submit. Photos appear on the public gallery.
+                      </span>
                     </div>
+                    {pendingUploads.length > 0 ? (
+                      <div className="guest-portal__pending">
+                        <p className="guest-portal__pending-label">
+                          Ready to upload ({pendingUploads.length})
+                        </p>
+                        <ul className="guest-portal__grid guest-portal__grid--pending">
+                          {pendingUploads.map(p => (
+                            <li key={p.key} className="guest-portal__thumb guest-portal__thumb--pending">
+                              {isVideoFile(p.file) ? (
+                                <video src={p.previewUrl} className="guest-portal__media" muted playsInline />
+                              ) : (
+                                <img src={p.previewUrl} alt="" className="guest-portal__media" />
+                              )}
+                              <span className="guest-portal__cap">{p.file.name}</span>
+                              <button
+                                type="button"
+                                className="guest-portal__remove"
+                                disabled={uploadBusy}
+                                onClick={() => removePending(p.key)}
+                                aria-label={`Remove ${p.file.name}`}
+                              >
+                                Remove
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="guest-portal__pending-actions">
+                          <button
+                            type="button"
+                            className="btn btn--gold"
+                            disabled={uploadBusy || !uploadAlbumId}
+                            onClick={() => void submitPendingUploads()}
+                          >
+                            {uploadBusy
+                              ? "Uploading…"
+                              : `Submit ${pendingUploads.length} ${pendingUploads.length === 1 ? "file" : "files"}`}{" "}
+                            <span className="arrow">→</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn--ghost"
+                            disabled={uploadBusy}
+                            onClick={clearPending}
+                          >
+                            Clear all
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                     {mediaErr ? (
                       <p className="guest-portal__err" role="alert">
                         {mediaErr}

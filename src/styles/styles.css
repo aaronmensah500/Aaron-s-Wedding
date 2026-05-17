@@ -995,6 +995,22 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14);
   overflow: hidden;
 }
+.adm-toolbar__drag {
+  cursor: grab;
+  touch-action: none;
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 4px;
+  flex-shrink: 0;
+  user-select: none;
+}
+.adm-toolbar__drag:active {
+  cursor: grabbing;
+}
 .adm-toolbar__status,
 .adm-toolbar__page {
   font-size: 11px;

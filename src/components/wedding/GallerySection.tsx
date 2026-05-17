@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
 import { useSiteEditorOptional } from "../../lib/siteEditor";
-import { useGalleryAlbumMedia } from "../../lib/galleryMediaApi";
+import { useGalleryAlbumCounts, useGalleryAlbumMedia } from "../../lib/galleryMediaApi";
 import { Ph } from "./Core";
 import { EditableText } from "../editable/EditableText";
 import { EditableImage } from "../editable/EditableImage";
@@ -37,9 +37,17 @@ export function Gallery() {
   const items = (gz.items || []) as GalleryCmsItem[];
   const [activeAlbumId, setActiveAlbumId] = useState(null as string | null);
   const [open, setOpen] = useState(-1);
+  const { counts: guestCountsByAlbum } = useGalleryAlbumCounts();
   const { items: guestItems, loading: guestLoading, error: guestError } = useGalleryAlbumMedia(
     activeAlbumId && !editor?.isEditing ? activeAlbumId : null
   );
+
+  const photoCountLabel = (n: number) => `${n} ${n === 1 ? "photo" : "photos"}`;
+  const albumPhotoCount = (albumId: string) => {
+    const cms = items.filter(i => itemInAlbum(i, albumId)).length;
+    const guest = editor?.isEditing ? 0 : guestCountsByAlbum[normAlbumId(albumId)] ?? 0;
+    return cms + guest;
+  };
 
   const cmsInAlbum = activeAlbumId
     ? items.map((g, cmsIndex) => ({ g, cmsIndex })).filter(({ g }) => itemInAlbum(g, activeAlbumId))
@@ -128,9 +136,7 @@ export function Gallery() {
                 <div className="gallery-albums__meta">
                   <h3 className="gallery-albums__title">{album.title}</h3>
                   {album.description ? <p className="gallery-albums__desc">{album.description}</p> : null}
-                  <span className="gallery-albums__count">
-                    {items.filter(i => itemInAlbum(i, album.id)).length} photos
-                  </span>
+                  <span className="gallery-albums__count">{photoCountLabel(albumPhotoCount(album.id))}</span>
                 </div>
               </button>
             );
@@ -155,7 +161,9 @@ export function Gallery() {
               <p className="gallery-albums__view-desc">{activeAlbum.description}</p>
             ) : null}
             <p className="gallery-albums__view-count">
-              {cmsInAlbum.length + (editor?.isEditing || guestLoading ? 0 : guestItems.length)} photos
+              {photoCountLabel(
+                cmsInAlbum.length + (editor?.isEditing || guestLoading ? 0 : guestItems.length)
+              )}
             </p>
           </div>
           {guestError ? <p className="gallery-albums__err">{guestError}</p> : null}

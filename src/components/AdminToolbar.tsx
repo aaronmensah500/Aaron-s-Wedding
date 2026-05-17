@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useWeddingContent, WEDDING_CONTENT_DEFAULT, validateSiteContentImport } from "../lib/weddingContent";
 import { useSiteEditor } from "../lib/siteEditor";
 import {
@@ -403,6 +403,22 @@ function AdminPublishBanner({
   );
 }
 
+const DRAG_POS_KEY = "adm-toolbar-pos";
+
+function readDragPos(): { x: number; y: number } | null {
+  try {
+    const v = sessionStorage.getItem(DRAG_POS_KEY);
+    if (!v) return null;
+    const p = JSON.parse(v) as { x?: unknown; y?: unknown };
+    if (typeof p.x !== "number" || typeof p.y !== "number") return null;
+    const maxX = window.innerWidth - 80;
+    const maxY = window.innerHeight - 40;
+    return { x: Math.max(0, Math.min(maxX, p.x)), y: Math.max(0, Math.min(maxY, p.y)) };
+  } catch {
+    return null;
+  }
+}
+
 export function AdminToolbar() {
   const { content, patchContent, replaceContent, resetToDefaults, publishStatus, publishError, publishForEveryone } =
     useWeddingContent();
@@ -413,6 +429,43 @@ export function AdminToolbar() {
   const [importText, setImportText] = useState("");
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [saveModalError, setSaveModalError] = useState("");
+
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(readDragPos);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null);
+
+  const onDragDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    const el = toolbarRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const cur = dragPos ?? { x: rect.left, y: rect.top };
+    drag.current = { px: e.clientX, py: e.clientY, ox: cur.x, oy: cur.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onDragMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!drag.current) return;
+    const el = toolbarRef.current;
+    if (!el) return;
+    const dx = e.clientX - drag.current.px;
+    const dy = e.clientY - drag.current.py;
+    const x = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, drag.current.ox + dx));
+    const y = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, drag.current.oy + dy));
+    setDragPos({ x, y });
+  };
+
+  const onDragUp = () => {
+    if (drag.current && dragPos) {
+      try { sessionStorage.setItem(DRAG_POS_KEY, JSON.stringify(dragPos)); } catch { /* ignore */ }
+    }
+    drag.current = null;
+  };
+
+  const resetDragPos = () => {
+    setDragPos(null);
+    try { sessionStorage.removeItem(DRAG_POS_KEY); } catch { /* ignore */ }
+  };
 
   const canPublish = Boolean(import.meta.env.PUBLIC_SUPABASE_URL?.trim());
   const requirePin = !emailAuthEnabled && content.admin?.requirePin !== false;
@@ -463,7 +516,24 @@ export function AdminToolbar() {
 
   return (
     <>
-      <div className="adm-toolbar" role="toolbar" aria-label="Site editor">
+      <div
+        ref={toolbarRef}
+        className="adm-toolbar"
+        role="toolbar"
+        aria-label="Site editor"
+        style={dragPos ? { left: dragPos.x, top: dragPos.y, bottom: "auto", transform: "none" } : undefined}
+      >
+        <button
+          type="button"
+          className="adm-toolbar__drag"
+          aria-label="Drag to move toolbar — double-click to reset"
+          onPointerDown={onDragDown}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragUp}
+          onDoubleClick={resetDragPos}
+        >
+          ⠿
+        </button>
         <p className="adm-toolbar__page" aria-live="polite">
           <strong>Editing: {pageLabel}</strong>
           <span className="adm-toolbar__page-hint">

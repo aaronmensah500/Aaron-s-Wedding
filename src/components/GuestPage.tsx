@@ -10,7 +10,7 @@ export default function GuestPage({ revision }: GuestPageProps) {
   return (
     <>
       <GuestPortal session={session} authChecking={authChecking} />
-      {session ? <GuestExperience key={revision} /> : null}
+      {session ? <GuestExperience key={revision} session={session} /> : null}
     </>
   );
 }

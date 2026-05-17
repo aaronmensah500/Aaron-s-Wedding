@@ -14,7 +14,7 @@ import { HomeHub } from "./wedding/HomeHub";
 import { HomeStoryTeaser } from "./wedding/HomeStoryTeaser";
 import { TravelLogistics } from "./wedding/TravelLogistics";
 import { RSVP, BridalParty, Gallery } from "./wedding/RsvpBlock";
-import { Registry, Livestream, GuestExperience, Footer } from "./wedding/ExtrasBlock";
+import { Registry, Livestream, Footer } from "./wedding/ExtrasBlock";
 
 const ClientAdmin = lazy(() => import("./AdminPanel").then((m) => ({ default: m.ClientAdmin })));
 const GuestPage = lazy(() => import("./GuestPage"));

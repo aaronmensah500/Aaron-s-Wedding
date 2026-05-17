@@ -6,7 +6,38 @@ import { apiErrorMessage } from "../../i18n/en";
 
 export const prerender = false;
 
+function normAlbumId(id: string | null | undefined): string {
+  return String(id || "general").trim().toLowerCase();
+}
+
 export const GET: APIRoute = async ({ url }) => {
+  const countsOnly = url.searchParams.get("counts") === "1";
+
+  if (countsOnly) {
+    let service;
+    try {
+      service = getServiceSupabase();
+    } catch {
+      return jsonError("server_misconfigured", 503, apiErrorMessage("server_misconfigured"));
+    }
+
+    const { data, error } = await service
+      .from("guest_media")
+      .select("album_id")
+      .eq("wedding_slug", WEDDING_SLUG);
+
+    if (error) {
+      return jsonError("load_failed", 500, apiErrorMessage("save_failed"));
+    }
+
+    const counts: Record<string, number> = {};
+    for (const row of data || []) {
+      const id = normAlbumId(row.album_id);
+      counts[id] = (counts[id] || 0) + 1;
+    }
+    return jsonOk({ counts });
+  }
+
   const albumId = String(url.searchParams.get("albumId") || "").trim();
   if (!albumId) {
     return jsonError("invalid_album", 400, "Missing albumId.");

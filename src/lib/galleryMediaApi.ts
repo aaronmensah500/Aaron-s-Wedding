@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type GalleryGuestMediaItem = {
   id: string;
@@ -52,4 +52,26 @@ export function useGalleryAlbumMedia(albumId: string | null) {
   }, [albumId]);
 
   return { items, loading, error };
+}
+
+export function useGalleryAlbumCounts() {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    return fetch("/api/gallery-media?counts=1")
+      .then(async res => {
+        const json = (await res.json().catch(() => ({}))) as { counts?: Record<string, number> };
+        if (res.ok) setCounts(json.counts ?? {});
+      })
+      .catch(() => setCounts({}))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return { counts, loading, refresh };
 }
