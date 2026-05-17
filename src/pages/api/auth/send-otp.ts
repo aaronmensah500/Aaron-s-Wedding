@@ -94,7 +94,19 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (signErr) {
     serverLog("warn", "send_otp_failed", { ip, message: signErr.message });
-    return jsonError("otp_send_failed", 400, apiErrorMessage("otp_send_failed"));
+    const msg = signErr.message?.toLowerCase() ?? "";
+    const isRateLimit =
+      msg.includes("rate limit") ||
+      msg.includes("too many") ||
+      msg.includes("60 seconds") ||
+      msg.includes("security purposes");
+    if (isRateLimit) {
+      return jsonError("rate_limited", 429, apiErrorMessage("rate_limited"), {
+        "Retry-After": "60",
+      });
+    }
+    const detail = import.meta.env.DEV ? ` (${signErr.message})` : "";
+    return jsonError("otp_send_failed", 400, apiErrorMessage("otp_send_failed") + detail);
   }
 
   return jsonOk({ email });
