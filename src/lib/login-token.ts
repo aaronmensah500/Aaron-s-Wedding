@@ -140,19 +140,28 @@ export async function createSupabaseSessionForEmail(
   | { ok: false; message: string }
 > {
   await provisionAuthUserForEmail(service, email, metadata);
-  const userId = await findUserIdByEmail(service, email);
-  if (!userId) return { ok: false, message: "User not found after provision" };
 
-  const { data, error } = await service.auth.admin.createSession({ user_id: userId });
-  if (error || !data.session) {
-    return { ok: false, message: error?.message ?? "Could not create session" };
+  const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (linkError || !linkData?.properties?.hashed_token) {
+    return { ok: false, message: linkError?.message ?? "Could not generate login link" };
+  }
+
+  const { data: sessionData, error: sessionError } = await service.auth.verifyOtp({
+    token_hash: linkData.properties.hashed_token,
+    type: "magiclink",
+  });
+  if (sessionError || !sessionData.session) {
+    return { ok: false, message: sessionError?.message ?? "Could not create session" };
   }
 
   return {
     ok: true,
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
-    expires_in: data.session.expires_in ?? 3600,
+    access_token: sessionData.session.access_token,
+    refresh_token: sessionData.session.refresh_token,
+    expires_in: sessionData.session.expires_in ?? 3600,
   };
 }
 

@@ -11,8 +11,9 @@ import {
 import { AdminImageUpload } from "./AdminImageUpload";
 import { AdminPinSaveModal } from "./AdminPinSaveModal";
 import { AdminWeddingDateSettings } from "./AdminWeddingDateSettings";
+import { AdminGuestPhotosPanel } from "./AdminGuestPhotosPanel";
 
-type SheetId = null | "sections" | "site" | "backup" | "advanced" | "arrays";
+type SheetId = null | "sections" | "site" | "backup" | "advanced" | "arrays" | "photos";
 
 function AdminTextField({
   label,
@@ -512,6 +513,7 @@ export function AdminToolbar() {
     backup: "Backup",
     advanced: "Advanced",
     arrays: "Lists & photos",
+    photos: "Guest photos",
   };
 
   return (
@@ -565,6 +567,9 @@ export function AdminToolbar() {
         <button type="button" className="adm-btn adm-btn--sm" onClick={() => setSheet("advanced")}>
           Advanced
         </button>
+        <button type="button" className="adm-btn adm-btn--sm" onClick={() => setSheet("photos")}>
+          Photos
+        </button>
         <button type="button" className="adm-btn adm-btn--sm" onClick={() => setSheet("backup")}>
           Backup
         </button>
@@ -598,6 +603,9 @@ export function AdminToolbar() {
             </div>
             {sheet === "sections" ? <AdminSectionToggles currentPage={currentPage} /> : null}
             {sheet === "arrays" ? <AdminArraysPanel /> : null}
+            {sheet === "photos" ? (
+              <AdminGuestPhotosPanel albums={content.gallery?.albums || []} />
+            ) : null}
             {sheet === "site" ? (
               <div className="adm-stack">
                 <AdminWeddingDateSettings />

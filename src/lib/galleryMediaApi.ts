@@ -1,5 +1,48 @@
 import { useCallback, useEffect, useState } from "react";
 
+// ── Admin types & functions ───────────────────────────────────────────────────
+
+export type AdminGuestMediaItem = {
+  id: string;
+  object_path: string;
+  original_name: string;
+  album_id: string;
+  created_at: string;
+  signedUrl: string | null;
+  source: "guest";
+};
+
+export async function fetchAdminGuestPhotos(
+  authHeader: string,
+  albumId?: string
+): Promise<AdminGuestMediaItem[]> {
+  const params = albumId ? `?albumId=${encodeURIComponent(albumId)}` : "";
+  const res = await fetch(`/api/admin/guest-media${params}`, {
+    headers: { Authorization: authHeader },
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    items?: AdminGuestMediaItem[];
+    error?: { message?: string };
+  };
+  if (!res.ok) throw new Error(json?.error?.message ?? "Could not load photos.");
+  return json.items ?? [];
+}
+
+export async function deleteAdminGuestPhotos(
+  authHeader: string,
+  ids: string[]
+): Promise<void> {
+  const res = await fetch("/api/admin/guest-media", {
+    method: "DELETE",
+    headers: { Authorization: authHeader, "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+  if (!res.ok) throw new Error(json?.error?.message ?? "Could not delete photos.");
+}
+
+// ── Guest-facing hooks ────────────────────────────────────────────────────────
+
 export type GalleryGuestMediaItem = {
   id: string;
   object_path: string;

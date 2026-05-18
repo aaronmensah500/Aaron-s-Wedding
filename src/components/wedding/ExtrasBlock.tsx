@@ -450,6 +450,7 @@ export function GuestExperience({ session }: GuestExperienceProps) {
   useEffect(() => {
     if (!isSupabaseConfigured() || !session) return;
     const sb = getBrowserSupabase();
+    if (!sb) return;
     let active = true;
     void sb
       .from("rsvps")
