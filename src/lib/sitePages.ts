@@ -18,7 +18,7 @@ export function sitePath(page: SitePageId, hash?: string): string {
 }
 
 export const PAGE_TITLES: Record<SitePageId, string> = {
-  home: "Aaron & Princess · 08.29.2026",
+  home: "Aaron & Princess · 29.08.2026",
   story: "Our story · Aaron & Princess",
   wedding: "Wedding details · Aaron & Princess",
   travel: "Travel & stay · Aaron & Princess",
