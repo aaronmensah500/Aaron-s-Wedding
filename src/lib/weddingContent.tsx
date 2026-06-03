@@ -258,9 +258,9 @@ const WEDDING_CONTENT_DEFAULT = {
       addrLine1: "Lagos Avenue",
       addrLine2: "East Legon, Accra · Ghana",
       arrivalLabel: "Arrival",
-      arrivalTime: "3:30 PM",
+      arrivalTime: "10:00 AM",
       vowsLabel: "Vows",
-      vowsTime: "4:30 PM",
+      vowsTime: "11:00 AM",
       attireLabel: "Attire",
       attireValue: "Formal"
     },
@@ -272,14 +272,14 @@ const WEDDING_CONTENT_DEFAULT = {
       addrLine1: "Giffard Road",
       addrLine2: "Cantonments, Accra · Ghana",
       dinnerLabel: "Dinner",
-      dinnerTime: "7:30 PM",
+      dinnerTime: "3:30 PM",
       dancingLabel: "Dancing",
-      dancingTime: "10:00 PM",
+      dancingTime: "6:00 PM",
       attireLabel: "Attire",
       attireValue: "Black tie"
     },
-    mapPinCeremony: "Ceremony · 4:30 PM",
-    mapPinReception: "Reception · 7:30 PM",
+    mapPinCeremony: "Ceremony · 11:00 AM",
+    mapPinReception: "Reception · 3:30 PM",
     /** Your own map (PNG/JPG/WebP, etc.) — any https URL; shown instead of the embed when set. */
     mapImageUrl: "",
     mapImageAlt: "Wedding venues map",
@@ -311,11 +311,11 @@ const WEDDING_CONTENT_DEFAULT = {
     itineraryTitle: "Itinerary",
     addCalendarLabel: "Add to calendar",
     itinerary: [
-      { time: "3:30 PM", title: "Welcome arrival", sub: "Gather at Agape House before the procession", loc: "Agape House", attire: "Smart casual" },
-      { time: "4:30 PM", title: "Ceremony", sub: "Vows at Agape House · East Legon", loc: "Agape House", attire: "Formal" },
-      { time: "6:00 PM", title: "Cocktail hour", sub: "Light bites · transition toward Cantonments", loc: "En route", attire: "Formal" },
-      { time: "7:30 PM", title: "Dinner & speeches", sub: "Celebration at the stadium", loc: "El-Wak Sports Stadium", attire: "Black tie" },
-      { time: "10:00 PM", title: "Dancing", sub: "DJ set until late", loc: "El-Wak Sports Stadium", attire: "Bring shoes" }
+      { time: "10:00 AM", title: "Welcome arrival", sub: "Gather at Agape House before the procession", loc: "Agape House", attire: "Smart casual" },
+      { time: "11:00 AM", title: "Ceremony", sub: "Vows at Agape House · East Legon", loc: "Agape House", attire: "Formal" },
+      { time: "12:30 PM", title: "Cocktail hour", sub: "Light bites · transition toward Cantonments", loc: "En route", attire: "Formal" },
+      { time: "3:30 PM", title: "Dinner & speeches", sub: "Celebration at the stadium", loc: "El-Wak Sports Stadium", attire: "Black tie" },
+      { time: "6:00 PM", title: "Dancing", sub: "DJ set until late", loc: "El-Wak Sports Stadium", attire: "Bring shoes" }
     ]
   },
   travelLogistics: {
@@ -326,7 +326,7 @@ const WEDDING_CONTENT_DEFAULT = {
     titleEm: "runway",
     titleLine2: "to dance floor",
     lede: "Planning your route to Accra — airport, a suggested place to stay, then Agape House for the ceremony and El-Wak Sports Stadium for the reception. Use Google Maps links below and the venue map for directions.",
-    shuttleNote: "Guest transport will run between Agape House (East Legon) and El-Wak Sports Stadium (Cantonments) from 6:00 PM. Ask any attendant in a gold ribbon.",
+    shuttleNote: "Guest transport will run between Agape House (East Legon) and El-Wak Sports Stadium (Cantonments) from 12:30 PM. Ask any attendant in a gold ribbon.",
     visaNote: "Entry rules depend on your passport. Check Ghana Immigration guidance (e-visa / visa on arrival) well before you travel.",
     disclaimer: "These notes are for planning only. Times, traffic, and policies change — please verify everything for your situation.",
     lastUpdated: "May 2026",
@@ -358,7 +358,7 @@ const WEDDING_CONTENT_DEFAULT = {
       title: "Agape House · East Legon",
       subtitle: "The wedding ceremony",
       contextLine: "If your RSVP includes the ceremony",
-      body: "Welcome from 3:30 PM; vows at 4:30 PM. Formal attire. Please bring ID that matches your invitation.",
+      body: "Welcome from 10:00 AM; vows at 11:00 AM. Formal attire. Please bring ID that matches your invitation.",
       addressLine1: "Lagos Avenue",
       addressLine2: "East Legon, Accra · Ghana",
       googleUrl: "https://www.google.com/maps/search/?api=1&query=Agape+House+East+Legon+Accra",
@@ -369,11 +369,11 @@ const WEDDING_CONTENT_DEFAULT = {
       title: "El-Wak Sports Stadium",
       subtitle: "Dinner & dancing",
       contextLine: "All guests — or reception-only if you are not attending the earlier ceremony",
-      body: "Black tie from 7:30 PM. If you are reception-only, aim to arrive from 7:00 PM at the stadium gate.",
+      body: "Black tie from 3:30 PM. If you are reception-only, aim to arrive from 3:00 PM at the stadium gate.",
       addressLine1: "Giffard Road",
       addressLine2: "Cantonments, Accra · Ghana",
       googleUrl: "https://www.google.com/maps/search/?api=1&query=El+Wak+Sports+Stadium+Accra",
-      tips: "Follow signage to the reception entrance; guest transport from Agape House will be available from 6:00 PM."
+      tips: "Follow signage to the reception entrance; guest transport from Agape House will be available from 12:30 PM."
     }
   },
   rsvp: {
@@ -499,15 +499,15 @@ const WEDDING_CONTENT_DEFAULT = {
     awaitingText: "Awaiting broadcast",
     previewText: "Preview · 00:24",
     panelEyebrow: "Set a reminder",
-    panelTitle: "The broadcast begins Saturday at 4:30 PM GMT (Accra)",
+    panelTitle: "The broadcast begins Saturday at 11:00 AM GMT (Accra)",
     remindLabel: "Remind me",
     calendarLabel: "Add to calendar",
     schedule: [
-      { label: "Pre-show", time: "4:00 PM" },
-      { label: "Ceremony", time: "4:30 PM" },
-      { label: "Cocktail hour", time: "6:00 PM" },
-      { label: "Dinner & speeches", time: "7:30 PM" },
-      { label: "First dance", time: "9:15 PM" }
+      { label: "Pre-show", time: "10:30 AM" },
+      { label: "Ceremony", time: "11:00 AM" },
+      { label: "Cocktail hour", time: "12:30 PM" },
+      { label: "Dinner & speeches", time: "3:30 PM" },
+      { label: "First dance", time: "5:15 PM" }
     ]
   },
   invitation: {
@@ -759,6 +759,29 @@ function repairAdminPinIfEmpty(merged: WeddingSiteContent): { content: WeddingSi
   };
 }
 
+function repairMapPinTimes(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const d = merged.details;
+  if (!d) return { content: merged, didRepair: false };
+  const OLD_CEREMONY = "Ceremony · 4:30 PM";
+  const OLD_RECEPTION = "Reception · 7:30 PM";
+  const NEW_CEREMONY = WEDDING_CONTENT_DEFAULT.details.mapPinCeremony;
+  const NEW_RECEPTION = WEDDING_CONTENT_DEFAULT.details.mapPinReception;
+  const needsCeremony = d.mapPinCeremony === OLD_CEREMONY;
+  const needsReception = d.mapPinReception === OLD_RECEPTION;
+  if (!needsCeremony && !needsReception) return { content: merged, didRepair: false };
+  return {
+    content: {
+      ...merged,
+      details: {
+        ...d,
+        ...(needsCeremony ? { mapPinCeremony: NEW_CEREMONY } : {}),
+        ...(needsReception ? { mapPinReception: NEW_RECEPTION } : {}),
+      },
+    },
+    didRepair: true,
+  };
+}
+
 function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSiteContent; changed: boolean } {
   let changed = false;
   let next = merged;
@@ -771,6 +794,7 @@ function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSite
     repairRsvpPosterPlainText,
     repairRegistryAmountPresets,
     repairMapTilerInaccessibleDemoMap,
+    repairMapPinTimes,
   ];
   for (const step of steps) {
     const r = step(next);

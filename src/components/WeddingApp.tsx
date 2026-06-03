@@ -10,6 +10,7 @@ import {
   TweakSelect,
 } from "./TweaksPanel";
 import { useReveal, Nav, Hero, LoveStory, Details } from "./wedding/Core";
+import { HomeContact } from "./wedding/HomeContact";
 import { HomeHub } from "./wedding/HomeHub";
 import { HomeStoryTeaser } from "./wedding/HomeStoryTeaser";
 import { TravelLogistics } from "./wedding/TravelLogistics";
@@ -139,7 +140,7 @@ function App({ page }: AppProps) {
       <Nav currentPage={page} />
       {page === "home" && sec.hero !== false && <Hero countdownTarget={countdownTarget} />}
       {page === "home" && sec.story !== false && <HomeStoryTeaser />}
-      {page === "home" && sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
+      {page === "home" && <HomeContact />}
       {page === "home" && sec.registry !== false && <Registry compact />}
       {page === "home" && <HomeHub />}
       {page === "story" && sec.story !== false && <LoveStory />}

@@ -1617,3 +1617,39 @@
   color: var(--burgundy);
   margin-top: 8px;
 }
+.home-contact__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+  max-width: 640px;
+}
+.home-contact__card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 32px 28px;
+  background: var(--ivory);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.45s var(--ease-luxe), box-shadow 0.45s var(--ease-luxe), border-color 0.45s;
+  box-shadow: var(--shadow-card);
+}
+.home-contact__card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(217, 178, 107, 0.45);
+  box-shadow: 0 24px 48px rgba(42, 10, 14, 0.12);
+}
+.home-contact__name {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(24px, 2.5vw, 30px);
+  line-height: 1.1;
+}
+.home-contact__phone {
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}

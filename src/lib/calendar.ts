@@ -46,7 +46,7 @@ export function downloadWeddingIcs(
     `DTSTART:${fmt(start)}`,
     `DTEND:${fmt(end)}`,
     "SUMMARY:Aaron & Princess — Wedding",
-    `DESCRIPTION:Agape House East Legon · Ceremony 4:30 PM GMT\\, reception at El-Wak Sports Stadium.${siteLink ? `\\n${siteLink}` : ""}`,
+    `DESCRIPTION:Agape House East Legon · Ceremony 11:00 AM GMT\\, reception at El-Wak Sports Stadium.${siteLink ? `\\n${siteLink}` : ""}`,
     "LOCATION:Agape House\\, Lagos Avenue\\, East Legon\\, Accra\\, Ghana",
     "END:VEVENT",
     "END:VCALENDAR",
