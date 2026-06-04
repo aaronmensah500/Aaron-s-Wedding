@@ -17,3 +17,4 @@ npm-debug.log*
 
 # local uploads (dev only — production uploads go to Supabase Storage)
 uploads/
+.vercel

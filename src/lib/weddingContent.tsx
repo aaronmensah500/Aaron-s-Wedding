@@ -932,10 +932,6 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
         merged = repaired.content;
         const localEditedAt = readLocalEditedAt();
         let applyPublished = shouldApplyPublishedSiteContent(localEditedAt, published.updatedAt);
-        if (applyPublished && !localEditedAt && hadStoredData && localDraftDiffersFromPublished(initialContentRef.current, merged)) {
-          applyPublished = false;
-          markLocalContentEdited();
-        }
         if (applyPublished) {
           setContent(merged);
           persistLocalContent(merged);
