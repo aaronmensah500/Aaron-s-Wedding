@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { serverLog } from "./server-log";
 
 const CEREMONY_TIME = "11:00 AM";
 const RECEPTION_TIME = "3:30 PM";
@@ -130,26 +131,28 @@ export async function sendRsvpEmail(opts: {
   siteUrl: string;
 }): Promise<void> {
   const apiKey = import.meta.env.RESEND_API_KEY;
-  if (!apiKey) return;
+  if (!apiKey) {
+    serverLog("warn", "invite_email_skipped", { reason: "RESEND_API_KEY not set", email: opts.email });
+    return;
+  }
 
   const from =
     import.meta.env.RESEND_FROM_EMAIL || "Aaron & Princess <onboarding@resend.dev>";
 
+  serverLog("info", "invite_email_sending", { to: opts.email, from, attendance: opts.attendance });
+
   const resend = new Resend(apiKey);
 
-  if (opts.attendance === "yes") {
-    await resend.emails.send({
-      from,
-      to: opts.email,
-      subject: "You're invited — Aaron & Princess · 29 Aug 2026",
-      html: inviteHtml(opts.name, opts.siteUrl),
-    });
-  } else {
-    await resend.emails.send({
-      from,
-      to: opts.email,
-      subject: "We'll miss you — Aaron & Princess",
-      html: declineHtml(opts.name),
-    });
+  const payload = opts.attendance === "yes"
+    ? { subject: "You're invited — Aaron & Princess · 29 Aug 2026", html: inviteHtml(opts.name, opts.siteUrl) }
+    : { subject: "We'll miss you — Aaron & Princess", html: declineHtml(opts.name) };
+
+  const { data, error } = await resend.emails.send({ from, to: opts.email, ...payload });
+
+  if (error) {
+    serverLog("error", "invite_email_resend_error", { to: opts.email, error: JSON.stringify(error) });
+    throw new Error(error.message);
   }
+
+  serverLog("info", "invite_email_sent", { to: opts.email, id: data?.id });
 }
