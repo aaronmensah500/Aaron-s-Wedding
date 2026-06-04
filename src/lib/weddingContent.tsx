@@ -551,7 +551,8 @@ const WEDDING_CONTENT_DEFAULT = {
     copyrightLine: "© Aaron & Princess · Twelve · Twelve · Twenty Six",
     creditLine: "Designed with care\nin Accra",
     social: [
-      { label: "Instagram", href: "#" }
+      { label: "Princess", href: "https://www.instagram.com/_drtari" },
+      { label: "Aaron", href: "https://www.instagram.com/ron_neezy" }
     ]
   }
 };
