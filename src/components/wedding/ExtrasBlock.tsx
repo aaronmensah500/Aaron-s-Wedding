@@ -302,20 +302,6 @@ export function Registry({ compact = false }: RegistryProps) {
                       </div>
                     </div>
                   )}
-                  <div className="payment-card payment-card--side">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div className="chip" />
-                      <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> P</div>
-                    </div>
-                    <div>
-                      <div className="num">Paystack · {currency}</div>
-                      <div className="meta">
-                        <div><div style={{ opacity: 0.5, marginBottom: 4 }}>To</div><EditableText value={(reg.fundPaymentLabel as string) || "Honeymoon fund"} onChange={v => patchContent({ registry: { fundPaymentLabel: v } })} /></div>
-                        <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Date</div>{weddingDotDate}</div>
-                        <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Amount</div>{effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"}</div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </>
