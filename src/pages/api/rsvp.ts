@@ -7,6 +7,7 @@ import { serverLog } from "../../lib/server-log";
 import { apiErrorMessage, type ApiErrorCode } from "../../i18n/en";
 import { WEDDING_SLUG } from "../../lib/guest-access";
 import { fetchExistingRsvpStatus, upsertRsvpRow } from "../../lib/rsvp-db";
+import { sendRsvpEmail } from "../../lib/invite-email";
 
 export const prerender = false;
 
@@ -32,8 +33,6 @@ function validate(body: RsvpBody): ApiErrorCode | null {
   const name = String(body.full_name || "").trim();
   if (name.length < 2) return "invalid_name";
   if (body.attendance !== "yes" && body.attendance !== "no") return "invalid_attendance";
-  const guests = Number(body.guests);
-  if (!Number.isFinite(guests) || guests < 1 || guests > 20) return "invalid_guests";
   return null;
 }
 
@@ -71,7 +70,7 @@ export const POST: APIRoute = async ({ request }) => {
   const attendance = body.attendance as "yes" | "no";
   const events = Array.isArray(body.events) ? body.events.map(String) : [];
   const diet = Array.isArray(body.diet) ? body.diet.map(String) : [];
-  const guests = Math.min(20, Math.max(1, Number(body.guests)));
+  const guests = 1;
   const song = String(body.song || "").slice(0, 500);
   const note = String(body.note || "").slice(0, 4000);
 
@@ -117,6 +116,11 @@ export const POST: APIRoute = async ({ request }) => {
       hint: "Run supabase/migrations/20260517120000_rsvp_approval_status.sql for guest approval workflow",
     });
   }
+
+  const siteUrl = (import.meta.env.PUBLIC_SITE_URL || import.meta.env.DOMAIN || "").replace(/\/$/, "");
+  sendRsvpEmail({ name: full_name, email, attendance, siteUrl }).catch(err => {
+    serverLog("warn", "invite_email_failed", { email, message: err instanceof Error ? err.message : String(err) });
+  });
 
   return jsonOk({ status: saved.hasStatusColumn ? status : "approved" });
 };

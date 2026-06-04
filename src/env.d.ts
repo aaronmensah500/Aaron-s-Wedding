@@ -34,4 +34,8 @@ interface ImportMetaEnv {
   readonly PUBLIC_ADMIN_UPLOAD_TOKEN?: string;
   /** Bearer token for PUT /api/site-content — publishes editor changes for all visitors. */
   readonly PUBLIC_SITE_CONTENT_SAVE_TOKEN?: string;
+  /** Resend API key for transactional emails (server-only). */
+  readonly RESEND_API_KEY?: string;
+  /** From address for invite emails, e.g. "Aaron & Princess <invite@yourdomain.com>" */
+  readonly RESEND_FROM_EMAIL?: string;
 }

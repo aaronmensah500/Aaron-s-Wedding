@@ -434,7 +434,13 @@ const WEDDING_CONTENT_DEFAULT = {
       { role: "Bridesmaid", name: "Lola Ibikunle", bio: "Architect. Designed the chuppah you'll stand under.", imageUrl: "" },
       { role: "Groomsman", name: "Marcus Kane", bio: "Roommate, climbing partner, brother in everything but blood.", imageUrl: "" },
       { role: "Flower Girl", name: "Aria, age 5", bio: "Carries the rings with a seriousness usually reserved for diplomats.", imageUrl: "" },
-      { role: "Ring Bearer", name: "Eli, age 7", bio: "Will high-five everyone in the front row. We've decided to allow this.", imageUrl: "" }
+      { role: "Ring Bearer", name: "Eli, age 7", bio: "Will high-five everyone in the front row. We've decided to allow this.", imageUrl: "" },
+      { role: "Bridesmaid", name: "", bio: "", imageUrl: "" },
+      { role: "Groomsman", name: "", bio: "", imageUrl: "" },
+      { role: "Bridesmaid", name: "", bio: "", imageUrl: "" },
+      { role: "Groomsman", name: "", bio: "", imageUrl: "" },
+      { role: "Bridesmaid", name: "", bio: "", imageUrl: "" },
+      { role: "Groomsman", name: "", bio: "", imageUrl: "" }
     ]
   },
   gallery: {
@@ -759,6 +765,17 @@ function repairAdminPinIfEmpty(merged: WeddingSiteContent): { content: WeddingSi
   };
 }
 
+function repairPartyMembersCount(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const saved = merged.party?.members;
+  const defaults = WEDDING_CONTENT_DEFAULT.party.members;
+  if (!Array.isArray(saved) || saved.length >= defaults.length) return { content: merged, didRepair: false };
+  const extra = defaults.slice(saved.length);
+  return {
+    content: { ...merged, party: { ...merged.party, members: [...saved, ...extra] } },
+    didRepair: true,
+  };
+}
+
 function repairMapPinTimes(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
   const d = merged.details;
   if (!d) return { content: merged, didRepair: false };
@@ -795,6 +812,7 @@ function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSite
     repairRegistryAmountPresets,
     repairMapTilerInaccessibleDemoMap,
     repairMapPinTimes,
+    repairPartyMembersCount,
   ];
   for (const step of steps) {
     const r = step(next);

@@ -14,7 +14,6 @@ type RsvpForm = {
   email: string;
   attendance: "yes" | "no" | null;
   events: string[];
-  guests: number;
   diet: string[];
   song: string;
   note: string;
@@ -34,7 +33,6 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
     email: "",
     attendance: null,
     events: ["ceremony", "reception"],
-    guests: 2,
     diet: [],
     song: "",
     note: "",
@@ -77,7 +75,6 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
           full_name: data.name.trim(),
           attendance: data.attendance,
           events: data.events,
-          guests: data.guests,
           diet: data.diet,
           song: data.song,
           note: data.note,
@@ -125,7 +122,6 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
     email: "",
     attendance: null,
     events: ["ceremony", "reception"],
-    guests: 2,
     diet: [],
     song: "",
     note: "",
@@ -250,20 +246,9 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
                       <EditableText value={r.eventsLabel} onChange={v => patchContent({ rsvp: { eventsLabel: v } })} />
                     </label>
                     <div className="choice-row">
-                      {["ceremony","cocktails","reception","brunch"].map(ev => (
+                      {["ceremony","reception"].map(ev => (
                         <button type="button" key={ev} className={`choice ${data.events.includes(ev) ? "selected" : ""}`} onClick={() => toggle("events", ev)}>{ev}</button>
                       ))}
-                    </div>
-                  </div>
-                  <div className="field">
-                    <label>
-                      <EditableText value={r.guestsLabel} onChange={v => patchContent({ rsvp: { guestsLabel: v } })} />
-                    </label>
-                    <div className="counter">
-                      <button type="button" onClick={() => set("guests", Math.max(1, data.guests - 1))}>–</button>
-                      <div className="counter__val">{data.guests}</div>
-                      <button type="button" onClick={() => set("guests", Math.min(6, data.guests + 1))}>+</button>
-                      <span className="mono" style={{ marginLeft: 12, opacity: 0.55 }}>{r.guestsMaxNote}</span>
                     </div>
                   </div>
                 </>
@@ -313,7 +298,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
                 {import.meta.env.PUBLIC_SUPABASE_URL
                   ? "Thanks — the hosts will confirm your RSVP. Once approved, sign in on "
                   : data.attendance === "yes"
-                    ? `Your seat for ${data.guests} ${data.guests === 1 ? "person" : "people"} is noted for ${r.confirmVenue || "Agape House & El-Wak Stadium"}. `
+                    ? `Your seat is noted for ${r.confirmVenue || "Agape House & El-Wak Stadium"}. `
                     : r.successNoBody}
                 {import.meta.env.PUBLIC_SUPABASE_URL ? (
                   <>
@@ -327,7 +312,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
                       : " to see your reply."}
                   </>
                 ) : data.attendance === "yes" ? (
-                  `Your seat for ${data.guests} ${data.guests === 1 ? "person" : "people"} is held at ${r.confirmVenue || "Agape House & El-Wak Stadium"}.`
+                  `Your seat is held at ${r.confirmVenue || "Agape House & El-Wak Stadium"}.`
                 ) : (
                   r.successNoBody
                 )}
@@ -406,7 +391,7 @@ export function BridalParty() {
         {members.map((p, i) => (
           <article key={i} className="party-card">
             <EditableImage
-              label={`${String(i + 1).padStart(2, "0")} · ${(p.name || "").split(" ")[0]}`}
+              label={`${String(i + 1).padStart(2, "0")} ${(p.name || "").split(" ")[0]}`}
               src={p.imageUrl}
               variant={i % 2 ? "default" : "blush"}
               onChange={url => patchMember(i, { imageUrl: url })}
