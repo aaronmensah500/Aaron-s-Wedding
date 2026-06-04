@@ -247,6 +247,9 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
   const h = content.hero || {};
   const dateLine = heroDateDisplay(content.site?.weddingDateIso, h.dateDisplay);
   const sec = content.sections || {};
+  const social = content.footer?.social || [];
+  const socialHref = (name: string) =>
+    social.find((s: { label?: string; href?: string }) => s.label?.toLowerCase() === name?.toLowerCase())?.href || null;
   const bgRef = useRef<HTMLDivElement | null>(null);
   const bgUpload = useAdminImageUpload(url => patchContent({ hero: { bgImageUrl: url } }));
   const heroMediaStyle = h.bgImageUrl && String(h.bgImageUrl).trim()
@@ -353,13 +356,25 @@ export function Hero({ countdownTarget }: { countdownTarget?: Date | null }) {
         <h1 className="hero__title">
           <span className="line">
             <span>
-              <EditableText value={h.nameLine1} onChange={v => patchContent({ hero: { nameLine1: v } })} />
+              {socialHref(h.nameLine1 || "") ? (
+                <a href={socialHref(h.nameLine1 || "")!} target="_blank" rel="noopener noreferrer" className="hero__name-link">
+                  <EditableText value={h.nameLine1} onChange={v => patchContent({ hero: { nameLine1: v } })} />
+                </a>
+              ) : (
+                <EditableText value={h.nameLine1} onChange={v => patchContent({ hero: { nameLine1: v } })} />
+              )}
             </span>
           </span>
           <span className="line">
             <span>
               <i className="amp">&amp;</i>
-              <EditableText value={h.nameLine2} onChange={v => patchContent({ hero: { nameLine2: v } })} />
+              {socialHref(h.nameLine2 || "") ? (
+                <a href={socialHref(h.nameLine2 || "")!} target="_blank" rel="noopener noreferrer" className="hero__name-link">
+                  <EditableText value={h.nameLine2} onChange={v => patchContent({ hero: { nameLine2: v } })} />
+                </a>
+              ) : (
+                <EditableText value={h.nameLine2} onChange={v => patchContent({ hero: { nameLine2: v } })} />
+              )}
             </span>
           </span>
         </h1>

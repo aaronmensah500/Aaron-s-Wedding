@@ -43,7 +43,7 @@ export type SectionToggleKey =
 
 /** Section toggles (`content.sections`) that appear on each public page. */
 export const PAGE_SECTION_KEYS: Record<SitePageId, SectionToggleKey[]> = {
-  home: ["hero", "story", "details", "party", "travel", "rsvp", "gallery", "registry", "footer"],
+  home: ["hero", "story", "details", "rsvp", "registry", "footer"],
   story: ["story", "footer"],
   wedding: ["details", "party", "footer"],
   travel: ["travel", "footer"],
@@ -125,7 +125,7 @@ export function buildNavLinks(
   }
   if (sec.gallery !== false) links.push({ href: SITE_PATHS.gallery, label: "Gallery", page: "gallery" });
   if (sec.registry !== false) {
-    links.push({ href: onHome ? "#registry" : "/#registry", label: "Gifts", page: "registry" });
+    links.push({ href: SITE_PATHS.registry, label: "Gifts", page: "registry" });
   }
   if (sec.invitation !== false || import.meta.env.PUBLIC_SUPABASE_URL) {
     links.push({ href: SITE_PATHS.guest, label: "My guest", page: "guest" });

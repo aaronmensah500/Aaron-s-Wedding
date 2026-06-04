@@ -53,8 +53,6 @@ export function SectionHead({
     <div className="section__head reveal">
       <div>
         <div className="eyebrow">
-          <EditableText value={eyebrow} onChange={v => onPatch({ eyebrow: v })} />{" "}
-          <span className="dot" />{" "}
           <EditableText value={eyebrowLabel} onChange={v => onPatch({ eyebrowLabel: v })} />
         </div>
         <SectionTitle

@@ -139,10 +139,7 @@ function App({ page }: AppProps) {
       {page === "home" && sec.hero !== false && <Hero countdownTarget={countdownTarget} />}
       {page === "home" && sec.story !== false && <LoveStory />}
       {page === "home" && sec.details !== false && <Details />}
-      {page === "home" && sec.party !== false && <BridalParty />}
-      {page === "home" && sec.travel !== false && <TravelLogistics />}
       {page === "home" && sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
-      {page === "home" && sec.gallery !== false && <Gallery />}
       {page === "home" && sec.registry !== false && <Registry />}
       {page === "home" && <HomeContact />}
       {page === "story" && sec.story !== false && <LoveStory />}

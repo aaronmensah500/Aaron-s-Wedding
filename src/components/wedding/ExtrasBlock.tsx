@@ -294,10 +294,10 @@ export function Registry({ compact = false }: RegistryProps) {
                           <EditableText value={reg.bankName} onChange={v => patchContent({ registry: { bankName: v } })} />
                         </div>
                         <div className="meta" style={{ flexWrap: "wrap", gap: "12px 24px", marginTop: 12 }}>
-                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Account name</div><EditableText value={reg.bankAccountName} onChange={v => patchContent({ registry: { bankAccountName: v } })} /></div>
-                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Account no.</div><EditableText value={reg.bankAccountNo} onChange={v => patchContent({ registry: { bankAccountNo: v } })} /></div>
-                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Transit</div><EditableText value={reg.bankTransit} onChange={v => patchContent({ registry: { bankTransit: v } })} /></div>
-                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Institution</div><EditableText value={reg.bankInstitution} onChange={v => patchContent({ registry: { bankInstitution: v } })} /></div>
+                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Account name</div><strong style={{ opacity: 1, fontSize: 13 }}><EditableText value={reg.bankAccountName} onChange={v => patchContent({ registry: { bankAccountName: v } })} /></strong></div>
+                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Account no.</div><strong style={{ opacity: 1, fontSize: 13 }}><EditableText value={reg.bankAccountNo} onChange={v => patchContent({ registry: { bankAccountNo: v } })} /></strong></div>
+                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Transit</div><strong style={{ opacity: 1, fontSize: 13 }}><EditableText value={reg.bankTransit} onChange={v => patchContent({ registry: { bankTransit: v } })} /></strong></div>
+                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Institution</div><strong style={{ opacity: 1, fontSize: 13 }}><EditableText value={reg.bankInstitution} onChange={v => patchContent({ registry: { bankInstitution: v } })} /></strong></div>
                         </div>
                       </div>
                     </div>
@@ -492,6 +492,8 @@ export function Footer() {
   const { content, patchContent } = useWeddingContent();
   const f = content.footer || {};
   const social = f.social || [];
+  const socialHref = (name: string) =>
+    social.find(s => s.label?.toLowerCase() === name?.toLowerCase())?.href || null;
   return (
     <footer className="footer">
       <div className="footer__glow" />
@@ -500,9 +502,21 @@ export function Footer() {
           <EditableText value={f.eyebrow} onChange={v => patchContent({ footer: { eyebrow: v } })} />
         </div>
         <h2 className="footer__signature">
-          <EditableText value={f.signatureLine1} onChange={v => patchContent({ footer: { signatureLine1: v } })} />{" "}
+          {socialHref(f.signatureLine1 || "") ? (
+            <a href={socialHref(f.signatureLine1 || "")!} target="_blank" rel="noopener noreferrer" className="footer__sig-link">
+              <EditableText value={f.signatureLine1} onChange={v => patchContent({ footer: { signatureLine1: v } })} />
+            </a>
+          ) : (
+            <EditableText value={f.signatureLine1} onChange={v => patchContent({ footer: { signatureLine1: v } })} />
+          )}{" "}
           <span className="amp">&amp;</span>{" "}
-          <EditableText value={f.signatureLine2} onChange={v => patchContent({ footer: { signatureLine2: v } })} />
+          {socialHref(f.signatureLine2 || "") ? (
+            <a href={socialHref(f.signatureLine2 || "")!} target="_blank" rel="noopener noreferrer" className="footer__sig-link">
+              <EditableText value={f.signatureLine2} onChange={v => patchContent({ footer: { signatureLine2: v } })} />
+            </a>
+          ) : (
+            <EditableText value={f.signatureLine2} onChange={v => patchContent({ footer: { signatureLine2: v } })} />
+          )}
         </h2>
         <div className="footer__hash">
           <EditableText value={f.hash} onChange={v => patchContent({ footer: { hash: v } })} />
