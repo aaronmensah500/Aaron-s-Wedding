@@ -830,7 +830,7 @@ function persistLocalContent(merged: WeddingSiteContent) {
   }
 }
 
-function loadInitialSiteContent(): WeddingSiteContent {
+function loadInitialSiteContent(): { content: WeddingSiteContent; hadStoredData: boolean } {
   const defaults = cloneDefaultContent();
   const stored = readStoredSite();
   let merged = deepMerge(defaults, stored.raw || {}) as WeddingSiteContent;
@@ -839,7 +839,7 @@ function loadInitialSiteContent(): WeddingSiteContent {
   merged = repaired.content;
   changed ||= repaired.changed;
   if (changed) persistLocalContent(merged);
-  return merged;
+  return { content: merged, hadStoredData: stored.raw !== null };
 }
 
 /** Basic shape check before import / server merge. */
@@ -882,7 +882,8 @@ type WeddingContentValue = {
 const WeddingContentContext = createContext<WeddingContentValue | null>(null);
 
 function WeddingContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<WeddingSiteContent>(() => loadInitialSiteContent());
+  const [{ content: initialContent, hadStoredData }] = useState(() => loadInitialSiteContent());
+  const [content, setContent] = useState<WeddingSiteContent>(initialContent);
   const [revision, setRevision] = useState(0);
   const [contentHydrated, setContentHydrated] = useState(false);
   const [publishStatus, setPublishStatus] = useState<SitePublishStatus>("idle");
@@ -931,7 +932,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
         merged = repaired.content;
         const localEditedAt = readLocalEditedAt();
         let applyPublished = shouldApplyPublishedSiteContent(localEditedAt, published.updatedAt);
-        if (applyPublished && !localEditedAt && localDraftDiffersFromPublished(initialContentRef.current, merged)) {
+        if (applyPublished && !localEditedAt && hadStoredData && localDraftDiffersFromPublished(initialContentRef.current, merged)) {
           applyPublished = false;
           markLocalContentEdited();
         }
