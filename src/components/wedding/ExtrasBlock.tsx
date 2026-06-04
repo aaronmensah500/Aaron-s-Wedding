@@ -61,6 +61,14 @@ export function Registry({ compact = false }: RegistryProps) {
   const [paying, setPaying] = useState(false);
   const [paidRef, setPaidRef] = useState<string | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyField = (key: string, value: string) => {
+    navigator.clipboard.writeText((value || "").trim()).then(() => {
+      setCopiedField(key);
+      setTimeout(() => setCopiedField(null), 1500);
+    }).catch(() => {});
+  };
   useEffect(() => {
     if (presets.length && !presets.includes(amt) && !customOpen) {
       setAmt(presets[1] ?? presets[0]);
@@ -295,13 +303,31 @@ export function Registry({ compact = false }: RegistryProps) {
                         </div>
                         <div className="meta" style={{ flexWrap: "wrap", gap: "12px 24px", marginTop: 12 }}>
                           <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Account name</div><strong style={{ opacity: 1, fontSize: 13 }}><EditableText value={reg.bankAccountName} onChange={v => patchContent({ registry: { bankAccountName: v } })} /></strong></div>
-                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Account no.</div><strong style={{ opacity: 1, fontSize: 13 }}><EditableText value={reg.bankAccountNo} onChange={v => patchContent({ registry: { bankAccountNo: v } })} /></strong></div>
-                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Transit</div><strong style={{ opacity: 1, fontSize: 13 }}><EditableText value={reg.bankTransit} onChange={v => patchContent({ registry: { bankTransit: v } })} /></strong></div>
-                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Institution</div><strong style={{ opacity: 1, fontSize: 13 }}><EditableText value={reg.bankInstitution} onChange={v => patchContent({ registry: { bankInstitution: v } })} /></strong></div>
+                          <div onClick={() => copyField("accountNo", reg.bankAccountNo as string)} style={{ cursor: "pointer" }}>
+                            <div style={{ opacity: 0.5, marginBottom: 4 }}>Account no.</div>
+                            <strong style={{ opacity: 1, fontSize: 13, color: copiedField === "accountNo" ? "var(--champagne)" : "inherit" }}>
+                              {copiedField === "accountNo" ? "Copied!" : <EditableText value={reg.bankAccountNo} onChange={v => patchContent({ registry: { bankAccountNo: v } })} />}
+                            </strong>
+                          </div>
+                          <div onClick={() => copyField("transit", reg.bankTransit as string)} style={{ cursor: "pointer" }}>
+                            <div style={{ opacity: 0.5, marginBottom: 4 }}>Transit</div>
+                            <strong style={{ opacity: 1, fontSize: 13, color: copiedField === "transit" ? "var(--champagne)" : "inherit" }}>
+                              {copiedField === "transit" ? "Copied!" : <EditableText value={reg.bankTransit} onChange={v => patchContent({ registry: { bankTransit: v } })} />}
+                            </strong>
+                          </div>
+                          <div onClick={() => copyField("institution", reg.bankInstitution as string)} style={{ cursor: "pointer" }}>
+                            <div style={{ opacity: 0.5, marginBottom: 4 }}>Institution</div>
+                            <strong style={{ opacity: 1, fontSize: 13, color: copiedField === "institution" ? "var(--champagne)" : "inherit" }}>
+                              {copiedField === "institution" ? "Copied!" : <EditableText value={reg.bankInstitution} onChange={v => patchContent({ registry: { bankInstitution: v } })} />}
+                            </strong>
+                          </div>
                         </div>
                       </div>
                     </div>
                   )}
+                  <p style={{ margin: "8px 0 0", fontSize: 11, opacity: 0.5, letterSpacing: "0.04em" }}>
+                    Tap the account number, transit, or institution to copy.
+                  </p>
                 </div>
               </div>
             </>
