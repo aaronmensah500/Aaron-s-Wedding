@@ -2,12 +2,8 @@ import { Fragment, useState, useMemo, useEffect } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useWeddingContent } from "../../lib/weddingContent";
 import { useSiteEditorOptional } from "../../lib/siteEditor";
-import { Ph, Countdown } from "./Core";
-import { downloadWeddingIcs } from "../../lib/calendar";
 import { deriveWeddingDateFormats } from "../../lib/weddingDateFormats";
-import { QrCodeBlock } from "./QrCodeBlock";
 import { SITE_PATHS } from "../../lib/sitePages";
-import { buildSiteDeepLink } from "../../lib/siteUrl";
 import { getBrowserSupabase, isSupabaseConfigured } from "../../lib/supabase/browser";
 import { WEDDING_SLUG } from "../../lib/weddingConstants";
 import { openPaystackInline, type PaystackCurrency } from "../../lib/paystack";
@@ -65,12 +61,6 @@ export function Registry({ compact = false }: RegistryProps) {
   const [paying, setPaying] = useState(false);
   const [paidRef, setPaidRef] = useState<string | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
-  const [registryQrPayload, setRegistryQrPayload] = useState("");
-
-  useEffect(() => {
-    setRegistryQrPayload(buildSiteDeepLink({ explicitUrl: reg.qrUrl as string | undefined, hash: "registry" }));
-  }, [reg.qrUrl]);
-
   useEffect(() => {
     if (presets.length && !presets.includes(amt) && !customOpen) {
       setAmt(presets[1] ?? presets[0]);
@@ -96,14 +86,6 @@ export function Registry({ compact = false }: RegistryProps) {
   };
 
   const publicKey = (import.meta.env.PUBLIC_PAYSTACK_PUBLIC_KEY || "").trim();
-  const qrHostHint = useMemo(() => {
-    if (!registryQrPayload) return (reg.qrDomain as string) || "";
-    try {
-      return new URL(registryQrPayload).host;
-    } catch {
-      return (reg.qrDomain as string) || "";
-    }
-  }, [registryQrPayload, reg.qrDomain]);
 
   const handleContribute = async () => {
     setPayError(null);
@@ -168,193 +150,184 @@ export function Registry({ compact = false }: RegistryProps) {
 
       <div className={`registry__grid reveal-stagger${compact ? " registry__grid--compact" : ""}`}>
         <article className={`registry-card${compact ? " registry-card--horizontal" : ""}`}>
-          <div className={compact ? "registry-card__split" : undefined}>
-            <div className={compact ? "registry-card__col registry-card__col--intro" : undefined}>
-          <div className="registry-card__head">
-            <div>
-              <div className="eyebrow">
-                <EditableText value={reg.fundEyebrow} onChange={v => patchContent({ registry: { fundEyebrow: v } })} />
+          {compact ? (
+            /* Compact home widget — existing horizontal split */
+            <div className="registry-card__split">
+              <div className="registry-card__col registry-card__col--intro">
+                <div className="registry-card__head">
+                  <div>
+                    <div className="eyebrow">
+                      <EditableText value={reg.fundEyebrow} onChange={v => patchContent({ registry: { fundEyebrow: v } })} />
+                    </div>
+                    <h4>
+                      <EditableText value={reg.fundTitle} onChange={v => patchContent({ registry: { fundTitle: v } })} />
+                    </h4>
+                  </div>
+                  <div className="mono" style={{ color: "var(--champagne)" }}>
+                    <EditableText value={reg.currencies} onChange={v => patchContent({ registry: { currencies: v } })} />
+                  </div>
+                </div>
+                <p className="section__lede registry-card__lede">
+                  <EditableText value={reg.fundBody} onChange={v => patchContent({ registry: { fundBody: v } })} multiline as="span" />
+                </p>
+                <div className="contribution-amts">
+                  {presets.map(p => (
+                    <button type="button" key={p} className={`choice ${!customOpen && amt === p ? "selected" : ""}`} onClick={() => pickPreset(p)}>
+                      {moneyFmt.format(p)}
+                    </button>
+                  ))}
+                  <button type="button" className={`choice ${customOpen ? "selected" : ""}`} onClick={pickCustom}>Custom</button>
+                </div>
+                {customOpen && (
+                  <div className="field registry-card__custom-amt">
+                    <label htmlFor="registry-custom-amt-c">Amount ({currency})</label>
+                    <input id="registry-custom-amt-c" inputMode="numeric" autoComplete="off" placeholder="e.g. 750" value={customStr} onChange={e => setCustomStr(e.target.value)} />
+                  </div>
+                )}
+                <div className="registry-card__guest-fields">
+                  <div className="field">
+                    <label htmlFor="registry-gift-email-c">{reg.contributeEmailLabel}</label>
+                    <input id="registry-gift-email-c" type="email" autoComplete="email" placeholder={reg.contributeEmailPlaceholder as string | undefined} value={email} onChange={e => setEmail(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="registry-gift-name-c">{reg.contributeNameLabel}</label>
+                    <input id="registry-gift-name-c" type="text" autoComplete="name" placeholder={reg.contributeNamePlaceholder as string | undefined} value={giftName} onChange={e => setGiftName(e.target.value)} />
+                  </div>
+                </div>
               </div>
-              <h4>
-                <EditableText value={reg.fundTitle} onChange={v => patchContent({ registry: { fundTitle: v } })} />
-              </h4>
-            </div>
-            <div className="mono" style={{ color: "var(--champagne)" }}>
-              <EditableText value={reg.currencies} onChange={v => patchContent({ registry: { currencies: v } })} />
-            </div>
-          </div>
-          <p className="section__lede registry-card__lede">
-            <EditableText
-              value={reg.fundBody}
-              onChange={v => patchContent({ registry: { fundBody: v } })}
-              multiline
-              as="span"
-            />
-          </p>
-
-          <div className="contribution-amts">
-            {presets.map(p => (
-              <button type="button" key={p} className={`choice ${!customOpen && amt === p ? "selected" : ""}`} onClick={() => pickPreset(p)}>
-                {moneyFmt.format(p)}
-              </button>
-            ))}
-            <button type="button" className={`choice ${customOpen ? "selected" : ""}`} onClick={pickCustom}>
-              Custom
-            </button>
-          </div>
-
-          {customOpen && (
-            <div className="field registry-card__custom-amt">
-              <label htmlFor="registry-custom-amt">Amount ({currency})</label>
-              <input
-                id="registry-custom-amt"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="e.g. 750"
-                value={customStr}
-                onChange={e => setCustomStr(e.target.value)}
-              />
-            </div>
-          )}
-
-          {compact && (
-            <div className="registry-card__guest-fields">
-              <div className="field">
-                <label htmlFor="registry-gift-email">{reg.contributeEmailLabel}</label>
-                <input
-                  id="registry-gift-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder={reg.contributeEmailPlaceholder as string | undefined}
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="registry-gift-name">{reg.contributeNameLabel}</label>
-                <input
-                  id="registry-gift-name"
-                  type="text"
-                  autoComplete="name"
-                  placeholder={reg.contributeNamePlaceholder as string | undefined}
-                  value={giftName}
-                  onChange={e => setGiftName(e.target.value)}
-                />
+              <div className="registry-card__col registry-card__col--checkout">
+                <div className="payment-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div className="chip" />
+                    <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> P</div>
+                  </div>
+                  <div>
+                    <div className="num">Paystack · {currency}</div>
+                    <div className="meta">
+                      <div><div style={{ opacity: 0.5, marginBottom: 4 }}>To</div><EditableText value={(reg.fundPaymentLabel as string) || "Honeymoon fund"} onChange={v => patchContent({ registry: { fundPaymentLabel: v } })} /></div>
+                      <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Date</div>{weddingDotDate}</div>
+                      <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Amount</div>{effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"}</div>
+                    </div>
+                  </div>
+                </div>
+                {payError && <p className="registry__hint registry__hint--error" role="alert">{payError}</p>}
+                {paidRef && (
+                  <p className="registry__hint registry__hint--ok">
+                    {reg.contributePaidNote} <strong className="mono">{paidRef}</strong>
+                    {import.meta.env.PUBLIC_SUPABASE_URL ? <>{" "}<a href={`${SITE_PATHS.guest}#my-guest`} style={{ color: "var(--burgundy)" }}>View on My guest</a></> : null}
+                  </p>
+                )}
+                <button type="button" className="btn btn--gold registry-card__submit" disabled={!effectiveAmt || paying} onClick={() => void handleContribute()}>
+                  {paying ? "Opening checkout…" : <>Contribute {effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"} <span className="arrow">→</span></>}
+                </button>
               </div>
             </div>
-          )}
-            </div>
-
-            <div className={compact ? "registry-card__col registry-card__col--checkout" : undefined}>
-          {!compact && (
+          ) : (
+            /* Full page — header + lede full width, then Paystack | Bank side-by-side */
             <>
-              <div className="field" style={{ marginTop: 20 }}>
-                <label htmlFor="registry-gift-email">{reg.contributeEmailLabel}</label>
-                <input
-                  id="registry-gift-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder={reg.contributeEmailPlaceholder as string | undefined}
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
+              <div className="registry-card__head">
+                <div>
+                  <div className="eyebrow">
+                    <EditableText value={reg.fundEyebrow} onChange={v => patchContent({ registry: { fundEyebrow: v } })} />
+                  </div>
+                  <h4>
+                    <EditableText value={reg.fundTitle} onChange={v => patchContent({ registry: { fundTitle: v } })} />
+                  </h4>
+                </div>
+                <div className="mono" style={{ color: "var(--champagne)" }}>
+                  <EditableText value={reg.currencies} onChange={v => patchContent({ registry: { currencies: v } })} />
+                </div>
               </div>
-              <div className="field" style={{ marginTop: 12 }}>
-                <label htmlFor="registry-gift-name">{reg.contributeNameLabel}</label>
-                <input
-                  id="registry-gift-name"
-                  type="text"
-                  autoComplete="name"
-                  placeholder={reg.contributeNamePlaceholder as string | undefined}
-                  value={giftName}
-                  onChange={e => setGiftName(e.target.value)}
-                />
+              <p className="section__lede registry-card__lede">
+                <EditableText value={reg.fundBody} onChange={v => patchContent({ registry: { fundBody: v } })} multiline as="span" />
+              </p>
+
+              <div className="registry-card__pay-split">
+                {/* Left: form fields + button */}
+                <div className="registry-card__pay-col">
+                  <div className="contribution-amts">
+                    {presets.map(p => (
+                      <button type="button" key={p} className={`choice ${!customOpen && amt === p ? "selected" : ""}`} onClick={() => pickPreset(p)}>
+                        {moneyFmt.format(p)}
+                      </button>
+                    ))}
+                    <button type="button" className={`choice ${customOpen ? "selected" : ""}`} onClick={pickCustom}>Custom</button>
+                  </div>
+                  {customOpen && (
+                    <div className="field registry-card__custom-amt">
+                      <label htmlFor="registry-custom-amt">Amount ({currency})</label>
+                      <input id="registry-custom-amt" inputMode="numeric" autoComplete="off" placeholder="e.g. 750" value={customStr} onChange={e => setCustomStr(e.target.value)} />
+                    </div>
+                  )}
+                  <div className="field" style={{ marginTop: 20 }}>
+                    <label htmlFor="registry-gift-email">{reg.contributeEmailLabel}</label>
+                    <input id="registry-gift-email" type="email" autoComplete="email" placeholder={reg.contributeEmailPlaceholder as string | undefined} value={email} onChange={e => setEmail(e.target.value)} />
+                  </div>
+                  <div className="field" style={{ marginTop: 12 }}>
+                    <label htmlFor="registry-gift-name">{reg.contributeNameLabel}</label>
+                    <input id="registry-gift-name" type="text" autoComplete="name" placeholder={reg.contributeNamePlaceholder as string | undefined} value={giftName} onChange={e => setGiftName(e.target.value)} />
+                  </div>
+                  {payError && <p className="registry__hint registry__hint--error" role="alert">{payError}</p>}
+                  {paidRef && (
+                    <p className="registry__hint registry__hint--ok">
+                      {reg.contributePaidNote} <strong className="mono">{paidRef}</strong>
+                      {import.meta.env.PUBLIC_SUPABASE_URL ? <>{" "}<a href={`${SITE_PATHS.guest}#my-guest`} style={{ color: "var(--burgundy)" }}>View on My guest</a></> : null}
+                    </p>
+                  )}
+                  <button type="button" className="btn btn--gold" style={{ marginTop: 24, width: "100%" }} disabled={!effectiveAmt || paying} onClick={() => void handleContribute()}>
+                    {paying ? "Opening checkout…" : <>Contribute {effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"} <span className="arrow">→</span></>}
+                  </button>
+                </div>
+
+                {/* Right: bank card (top) + Paystack card (bottom) */}
+                <div className="registry-card__pay-col" style={{ gap: 16, display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>
+                  {(reg.bankName || reg.bankAccountNo) && (
+                    <div className="payment-card payment-card--bank payment-card--side">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div className="mono" style={{ fontSize: 10, letterSpacing: "0.28em", textTransform: "uppercase", opacity: 0.55 }}>
+                          <EditableText value={reg.bankLabel} onChange={v => patchContent({ registry: { bankLabel: v } })} />
+                        </div>
+                        <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> P</div>
+                      </div>
+                      <div>
+                        <div className="num">
+                          <EditableText value={reg.bankName} onChange={v => patchContent({ registry: { bankName: v } })} />
+                        </div>
+                        <div className="meta" style={{ flexWrap: "wrap", gap: "12px 24px", marginTop: 12 }}>
+                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Account name</div><EditableText value={reg.bankAccountName} onChange={v => patchContent({ registry: { bankAccountName: v } })} /></div>
+                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Account no.</div><EditableText value={reg.bankAccountNo} onChange={v => patchContent({ registry: { bankAccountNo: v } })} /></div>
+                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Transit</div><EditableText value={reg.bankTransit} onChange={v => patchContent({ registry: { bankTransit: v } })} /></div>
+                          <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Institution</div><EditableText value={reg.bankInstitution} onChange={v => patchContent({ registry: { bankInstitution: v } })} /></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="payment-card payment-card--side">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div className="chip" />
+                      <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> P</div>
+                    </div>
+                    <div>
+                      <div className="num">Paystack · {currency}</div>
+                      <div className="meta">
+                        <div><div style={{ opacity: 0.5, marginBottom: 4 }}>To</div><EditableText value={(reg.fundPaymentLabel as string) || "Honeymoon fund"} onChange={v => patchContent({ registry: { fundPaymentLabel: v } })} /></div>
+                        <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Date</div>{weddingDotDate}</div>
+                        <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Amount</div>{effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           )}
-
-          <div className="payment-card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div className="chip" />
-              <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> P</div>
-            </div>
-            <div>
-              <div className="num">Paystack · {currency}</div>
-              <div className="meta">
-                <div>
-                  <div style={{ opacity: 0.5, marginBottom: 4 }}>To</div>
-                  <EditableText
-                    value={(reg.fundPaymentLabel as string) || "Honeymoon fund"}
-                    onChange={v => patchContent({ registry: { fundPaymentLabel: v } })}
-                  />
-                </div>
-                <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Date</div>{weddingDotDate}</div>
-                <div><div style={{ opacity: 0.5, marginBottom: 4 }}>Amount</div>{effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"}</div>
-              </div>
-            </div>
-          </div>
-
-          {payError && (
-            <p className="registry__hint registry__hint--error" role="alert">
-              {payError}
-            </p>
-          )}
-          {paidRef && (
-            <p className="registry__hint registry__hint--ok">
-              {reg.contributePaidNote} <strong className="mono">{paidRef}</strong>
-              {import.meta.env.PUBLIC_SUPABASE_URL ? (
-                <>
-                  {" "}
-                  <a href={`${SITE_PATHS.guest}#my-guest`} style={{ color: "var(--burgundy)" }}>
-                    View on My guest
-                  </a>
-                </>
-              ) : null}
-            </p>
-          )}
-
-          <button
-            type="button"
-            className={`btn btn--gold${compact ? " registry-card__submit" : ""}`}
-            style={compact ? undefined : { marginTop: 24, width: "100%" }}
-            disabled={!effectiveAmt || paying}
-            onClick={() => void handleContribute()}
-          >
-            {paying ? "Opening checkout…" : <>Contribute {effectiveAmt ? moneyFmt.format(effectiveAmt) : "—"} <span className="arrow">→</span></>}
-          </button>
-            </div>
-          </div>
         </article>
 
-        {!compact ? (
-          <article className="registry-card qr-card">
-            <div className="registry-card__head">
-              <div>
-                <div className="eyebrow">
-                  <EditableText value={reg.qrEyebrow} onChange={v => patchContent({ registry: { qrEyebrow: v } })} />
-                </div>
-                <h4>
-                  <EditableText value={reg.qrTitle} onChange={v => patchContent({ registry: { qrTitle: v } })} />
-                </h4>
-              </div>
-            </div>
-            <div className="qr-block">
-              <QrCodeBlock value={registryQrPayload} label={reg.qrTitle as string} />
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--muted)" }}>
-              <span>{qrHostHint || "—"}</span>
-              <span style={{ color: "var(--champagne)" }}>
-                <EditableText value={reg.qrHint} onChange={v => patchContent({ registry: { qrHint: v } })} />
-              </span>
-            </div>
-          </article>
-        ) : null}
       </div>
 
       {compact ? (
         <p className="registry__more reveal">
           <a href={SITE_PATHS.registry} className="btn btn--ghost">
-            Livestream &amp; more <span className="arrow">→</span>
+            View full registry <span className="arrow">→</span>
           </a>
         </p>
       ) : null}
@@ -362,68 +335,6 @@ export function Registry({ compact = false }: RegistryProps) {
   );
 }
 
-// ============================================================
-// LIVESTREAM
-// ============================================================
-export function Livestream() {
-  const { content, patchContent } = useWeddingContent();
-  const st = content.stream || {};
-  const countdownTarget = useMemo(() => {
-    const d = new Date(content.site?.weddingDateIso);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }, [content.site?.weddingDateIso]);
-  const [playing, setPlaying] = useState(false);
-  const sched = st.schedule || [];
-  return (
-    <section id="stream" className="section section--dark">
-      <SectionHead
-        eyebrow={st.eyebrow}
-        eyebrowLabel={st.eyebrowLabel}
-        titleLine1={st.titleLine1}
-        titleEm={st.titleEm}
-        titleLine2={st.titleLine2}
-        lede={st.lede}
-        onPatch={p => patchContent({ stream: p })}
-      />
-
-      <div className="stream__wrap reveal">
-        <div className="stream__player">
-          <Ph label={st.playerImageLabel} src={st.playerImageUrl} variant="dark" />
-          <div className="stream__overlay">
-            <div className="stream__live"><span className="dot" /> {st.liveBadge}</div>
-            {!playing && (
-              <button type="button" className="stream__play" onClick={() => setPlaying(true)} aria-label="Play preview">
-                <svg viewBox="0 0 24 24"><path d="M5 3l16 9-16 9V3z" /></svg>
-              </button>
-            )}
-            <div className="stream__controls">
-              <span>{st.controlsLeft}</span>
-              <div className="progress" />
-              <span>{playing ? st.previewText : st.awaitingText}</span>
-            </div>
-          </div>
-        </div>
-
-        <aside className="stream__panel">
-          <div className="eyebrow" style={{ color: "var(--champagne)" }}>{st.panelEyebrow}</div>
-          <h3>{(st.panelTitle || "").split("\n").map((line, i) => (
-            <Fragment key={i}>{i > 0 && <br />}{line}</Fragment>
-          ))}</h3>
-          <Countdown light={false} targetDate={countdownTarget} />
-          <div className="schedule">
-            {sched.map((row, i) => (
-              <div key={i} className="schedule-row"><strong>{row.label}</strong><span className="t">{row.time}</span></div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" className="btn btn--gold" style={{ flex: 1 }} onClick={() => downloadWeddingIcs("aaron-princess-livestream-reminder.ics", content.site?.weddingDateIso)}>{st.remindLabel} <span className="arrow">→</span></button>
-            <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={() => downloadWeddingIcs(undefined, content.site?.weddingDateIso)}>{st.calendarLabel}</button>
-          </div>
-        </aside>
-      </div>
-    </section>
-  );
-}
 
 // ============================================================
 // GUEST EXPERIENCE — RSVP prompt + welcome (signed-in guests)

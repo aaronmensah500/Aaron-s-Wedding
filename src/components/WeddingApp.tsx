@@ -11,11 +11,9 @@ import {
 } from "./TweaksPanel";
 import { useReveal, Nav, Hero, LoveStory, Details } from "./wedding/Core";
 import { HomeContact } from "./wedding/HomeContact";
-import { HomeHub } from "./wedding/HomeHub";
-import { HomeStoryTeaser } from "./wedding/HomeStoryTeaser";
 import { TravelLogistics } from "./wedding/TravelLogistics";
 import { RSVP, BridalParty, Gallery } from "./wedding/RsvpBlock";
-import { Registry, Livestream, Footer } from "./wedding/ExtrasBlock";
+import { Registry, Footer } from "./wedding/ExtrasBlock";
 
 const ClientAdmin = lazy(() => import("./AdminPanel").then((m) => ({ default: m.ClientAdmin })));
 const GuestPage = lazy(() => import("./GuestPage"));
@@ -139,10 +137,14 @@ function App({ page }: AppProps) {
     <div className="app" data-page={page}>
       <Nav currentPage={page} />
       {page === "home" && sec.hero !== false && <Hero countdownTarget={countdownTarget} />}
-      {page === "home" && sec.story !== false && <HomeStoryTeaser />}
+      {page === "home" && sec.story !== false && <LoveStory />}
+      {page === "home" && sec.details !== false && <Details />}
+      {page === "home" && sec.party !== false && <BridalParty />}
+      {page === "home" && sec.travel !== false && <TravelLogistics />}
+      {page === "home" && sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
+      {page === "home" && sec.gallery !== false && <Gallery />}
+      {page === "home" && sec.registry !== false && <Registry />}
       {page === "home" && <HomeContact />}
-      {page === "home" && sec.registry !== false && <Registry compact />}
-      {page === "home" && <HomeHub />}
       {page === "story" && sec.story !== false && <LoveStory />}
       {page === "wedding" && sec.details !== false && <Details />}
       {page === "wedding" && sec.party !== false && <BridalParty />}
@@ -150,7 +152,6 @@ function App({ page }: AppProps) {
       {page === "rsvp" && sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
       {page === "gallery" && sec.gallery !== false && <Gallery />}
       {page === "registry" && sec.registry !== false && <Registry />}
-      {page === "registry" && sec.stream !== false && <Livestream />}
       {page === "guest" && (sec.invitation !== false || import.meta.env.PUBLIC_SUPABASE_URL) ? (
         <Suspense
           fallback={

@@ -1024,7 +1024,7 @@
 }
 
 /* ----- REGISTRY ----- */
-.registry__grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; }
+.registry__grid { display: grid; grid-template-columns: 1fr; gap: 32px; }
 .registry-card {
   position: relative; padding: 40px; border: 1px solid var(--hairline);
   background: var(--warm-white);
@@ -1057,6 +1057,11 @@
 .payment-card .chip::after { content:""; position:absolute; inset: 4px; border: 1px solid rgba(26,23,20,0.25); border-radius: 2px; }
 .payment-card .num { font-family: var(--mono); font-size: 16px; letter-spacing: 0.18em; }
 .payment-card .meta { display: flex; gap: 24px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; opacity: 0.7; }
+.payment-card--bank { background: linear-gradient(135deg, #1a2330 0%, #111820 100%); aspect-ratio: unset; min-height: 160px; }
+.payment-card--side { padding: 20px; aspect-ratio: unset; margin-top: 0; min-height: 0; }
+.registry-card__pay-split { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 32px; }
+.registry-card__pay-col { display: flex; flex-direction: column; }
+@media (max-width: 700px) { .registry-card__pay-split { grid-template-columns: 1fr; } }
 
 .qr-card { display: grid; grid-template-rows: 1fr auto; gap: 24px; }
 .qr-block {
@@ -1094,7 +1099,6 @@
 
 .contribution-amts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 
-@media (max-width: 900px) { .registry__grid { grid-template-columns: 1fr; } }
 
 /* ----- LIVESTREAM ----- */
 .stream__wrap { display: grid; grid-template-columns: 7fr 5fr; gap: 32px; }

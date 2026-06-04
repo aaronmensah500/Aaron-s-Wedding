@@ -1,7 +1,6 @@
 import { useWeddingContent } from "../../lib/weddingContent";
 import { EditableText } from "../editable/EditableText";
 import { SectionHead } from "../editable/SectionTitle";
-import { VenueDirectionsMap } from "./VenueDirectionsMap";
 
 type TravelLeg = {
   stepLabel?: string;
@@ -116,8 +115,6 @@ export function TravelLogistics() {
         <TravelLegCard leg={t.ceremony || {}} googleLabel={gBtn} onPatch={p => patchLeg("ceremony", p)} />
         <TravelLegCard leg={t.reception || {}} googleLabel={gBtn} onPatch={p => patchLeg("reception", p)} />
       </div>
-
-      <VenueDirectionsMap className="travel__map reveal" />
 
       <footer className="travel__foot reveal">
         {t.disclaimer ? (

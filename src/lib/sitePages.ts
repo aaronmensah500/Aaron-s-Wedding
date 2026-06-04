@@ -24,7 +24,7 @@ export const PAGE_TITLES: Record<SitePageId, string> = {
   travel: "Travel & stay · Aaron & Princess",
   rsvp: "RSVP · Aaron & Princess",
   gallery: "Gallery · Aaron & Princess",
-  registry: "Registry & livestream · Aaron & Princess",
+  registry: "Gifts · Aaron & Princess",
   guest: "My guest · Aaron & Princess",
 };
 
@@ -43,13 +43,13 @@ export type SectionToggleKey =
 
 /** Section toggles (`content.sections`) that appear on each public page. */
 export const PAGE_SECTION_KEYS: Record<SitePageId, SectionToggleKey[]> = {
-  home: ["hero", "story", "rsvp", "registry", "footer"],
+  home: ["hero", "story", "details", "party", "travel", "rsvp", "gallery", "registry", "footer"],
   story: ["story", "footer"],
   wedding: ["details", "party", "footer"],
   travel: ["travel", "footer"],
   rsvp: ["rsvp", "footer"],
   gallery: ["gallery", "footer"],
-  registry: ["registry", "stream", "footer"],
+  registry: ["registry", "footer"],
   guest: ["invitation", "footer"],
 };
 
@@ -107,10 +107,12 @@ export function editorTabLabel(tab: { label: string; page?: SitePageId }): strin
 
 export function buildNavLinks(
   sec: Record<string, boolean | undefined>,
-  travelNavLabel?: string
+  travelNavLabel?: string,
+  onHome = false
 ): NavLink[] {
   const links: NavLink[] = [];
-  if (sec.story !== false) links.push({ href: SITE_PATHS.story, label: "Story", page: "story" });
+  // Story & Gifts live only on home — anchor on home, deep-link from other pages
+  if (sec.story !== false) links.push({ href: onHome ? "#story" : "/#story", label: "Story", page: "story" });
   if (sec.details !== false || sec.party !== false) {
     links.push({ href: SITE_PATHS.wedding, label: "Wedding", page: "wedding" });
   }
@@ -122,8 +124,8 @@ export function buildNavLinks(
     });
   }
   if (sec.gallery !== false) links.push({ href: SITE_PATHS.gallery, label: "Gallery", page: "gallery" });
-  if (sec.registry !== false || sec.stream !== false) {
-    links.push({ href: SITE_PATHS.registry, label: "Gifts", page: "registry" });
+  if (sec.registry !== false) {
+    links.push({ href: onHome ? "#registry" : "/#registry", label: "Gifts", page: "registry" });
   }
   if (sec.invitation !== false || import.meta.env.PUBLIC_SUPABASE_URL) {
     links.push({ href: SITE_PATHS.guest, label: "My guest", page: "guest" });

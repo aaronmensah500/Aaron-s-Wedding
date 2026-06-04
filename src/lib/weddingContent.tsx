@@ -489,7 +489,13 @@ const WEDDING_CONTENT_DEFAULT = {
     qrTitle: "Open the registry on your phone",
     qrUrl: "",
     qrDomain: "",
-    qrHint: "Same page · contribution form"
+    qrHint: "Same page · contribution form",
+    bankLabel: "Or transfer directly",
+    bankName: "TD Canada Trust",
+    bankTransit: "19702",
+    bankInstitution: "004",
+    bankAccountName: "Princess Tari Morkor Lamptey-Puddicombe",
+    bankAccountNo: "6182439"
   },
   stream: {
     eyebrow: "No. 08",
@@ -543,12 +549,9 @@ const WEDDING_CONTENT_DEFAULT = {
     signatureLine2: "Princess",
     hash: "#AaronTakesPrincess · MMXXVI",
     copyrightLine: "© Aaron & Princess · Twelve · Twelve · Twenty Six",
-    creditLine: "Designed with care\nin Accra & Paris",
+    creditLine: "Designed with care\nin Accra",
     social: [
-      { label: "Instagram", href: "#" },
-      { label: "Spotify", href: "#" },
-      { label: "Photos", href: "#" },
-      { label: "Contact", href: "#" }
+      { label: "Instagram", href: "#" }
     ]
   }
 };

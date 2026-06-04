@@ -113,9 +113,9 @@ export function Nav({ currentPage }: { currentPage: SitePageId }) {
   const h = content.hero || {};
   const brandLeft = (h.nameLine1 || "A").trim().charAt(0) || "A";
   const brandRight = (h.nameLine2 || "P").trim().charAt(0) || "P";
-  const links = buildNavLinks(sec, content.travelLogistics?.navLabel);
-  const navMono = navMonoId(content.site?.weddingDateIso, content.nav?.monoId);
   const onHome = currentPage === "home";
+  const links = buildNavLinks(sec, content.travelLogistics?.navLabel, onHome);
+  const navMono = navMonoId(content.site?.weddingDateIso, content.nav?.monoId);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -161,7 +161,7 @@ export function Nav({ currentPage }: { currentPage: SitePageId }) {
       {sec.rsvp !== false && (
         <div className="nav__cta">
           <a
-            href={onHome ? "#rsvp" : SITE_PATHS.rsvp}
+            href={onHome ? "#rsvp" : "/#rsvp"}
             className={`pill${currentPage === "rsvp" ? " pill--active" : ""}`}
             onClick={() => setMenuOpen(false)}
           >
@@ -506,11 +506,6 @@ export function Details() {
 
       <div className="details__grid reveal-stagger">
         <article className="details__card">
-          <EditableImage
-            label={cer.imageLabel}
-            src={cer.imageUrl}
-            onChange={url => patchCer({ imageUrl: url })}
-          />
           <div className="details__card-body">
             <div className="eyebrow">
               <EditableText value={cer.eyebrow} onChange={v => patchCer({ eyebrow: v })} />
@@ -541,12 +536,6 @@ export function Details() {
         </article>
 
         <article className="details__card">
-          <EditableImage
-            label={rec.imageLabel}
-            src={rec.imageUrl}
-            variant="blush"
-            onChange={url => patchRec({ imageUrl: url })}
-          />
           <div className="details__card-body">
             <div className="eyebrow">
               <EditableText value={rec.eyebrow} onChange={v => patchRec({ eyebrow: v })} />
