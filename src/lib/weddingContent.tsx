@@ -350,7 +350,7 @@ const WEDDING_CONTENT_DEFAULT = {
       body: "A comfortable base between East Legon and the stadium. Early check-in may be available if you mention the wedding.",
       addressLine1: "Emporium Building, 13th Lane",
       addressLine2: "Airport Residential Area, Accra · Ghana",
-      googleUrl: "https://www.google.com/maps/search/?api=1&query=Movenpick+Ambassador+Hotel+Accra",
+      googleUrl: "https://www.google.com/maps/search/?api=1&query=Villa+Aesis+Spintex+Accra",
       tips: "Ask the concierge for car service to Agape House and El-Wak; Accra traffic peaks 7–9 AM and 5–7 PM."
     },
     ceremony: {
@@ -372,7 +372,7 @@ const WEDDING_CONTENT_DEFAULT = {
       body: "Black tie from 3:30 PM. If you are reception-only, aim to arrive from 3:00 PM at the stadium gate.",
       addressLine1: "Giffard Road",
       addressLine2: "Cantonments, Accra · Ghana",
-      googleUrl: "https://www.google.com/maps/search/?api=1&query=El+Wak+Sports+Stadium+Accra",
+      googleUrl: "https://www.google.com/maps/search/?api=1&query=Airforce+Officers+Mess+Cantonments+Accra",
       tips: "Follow signage to the reception entrance; guest transport from Agape House will be available from 12:30 PM."
     }
   },
