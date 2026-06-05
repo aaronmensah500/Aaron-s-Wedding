@@ -1,11 +1,11 @@
 import { Resend } from "resend";
 import { serverLog } from "./server-log";
 
-const CEREMONY_TIME = "11:00 AM";
+const CEREMONY_TIME = "11:30 AM";
 const RECEPTION_TIME = "3:30 PM";
 const WEDDING_DATE = "Saturday, 29th August 2026";
-const CEREMONY_VENUE = "Agape House, East Legon, Accra";
-const RECEPTION_VENUE = "El-Wak Sports Stadium, Cantonments, Accra";
+const CEREMONY_VENUE = "Agape House, Pawpaw Street, East Legon, Accra";
+const RECEPTION_VENUE = "Airforce Officers' Mess, Giffard Road, Cantonments, Accra";
 
 function inviteHtml(name: string, siteUrl: string): string {
   const firstName = name.split(" ")[0];

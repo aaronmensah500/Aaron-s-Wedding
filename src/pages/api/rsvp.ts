@@ -7,7 +7,6 @@ import { serverLog } from "../../lib/server-log";
 import { apiErrorMessage, type ApiErrorCode } from "../../i18n/en";
 import { WEDDING_SLUG } from "../../lib/guest-access";
 import { fetchExistingRsvpStatus, upsertRsvpRow } from "../../lib/rsvp-db";
-import { sendRsvpEmail } from "../../lib/invite-email";
 
 export const prerender = false;
 
@@ -116,11 +115,6 @@ export const POST: APIRoute = async ({ request }) => {
       hint: "Run supabase/migrations/20260517120000_rsvp_approval_status.sql for guest approval workflow",
     });
   }
-
-  const siteUrl = (import.meta.env.PUBLIC_SITE_URL || import.meta.env.DOMAIN || "").replace(/\/$/, "");
-  sendRsvpEmail({ name: full_name, email, attendance, siteUrl }).catch(err => {
-    serverLog("warn", "invite_email_failed", { email, message: err instanceof Error ? err.message : String(err) });
-  });
 
   return jsonOk({ status: saved.hasStatusColumn ? status : "approved" });
 };

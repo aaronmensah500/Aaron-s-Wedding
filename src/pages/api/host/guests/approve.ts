@@ -5,6 +5,8 @@ import { provisionAuthUserForEmail } from "../../../../lib/provisionAuthUser";
 import { getServiceSupabase } from "../../../../lib/supabase/service";
 import { jsonError, jsonOk } from "../../../../lib/api/json";
 import { apiErrorMessage } from "../../../../i18n/en";
+import { sendRsvpEmail } from "../../../../lib/invite-email";
+import { serverLog } from "../../../../lib/server-log";
 
 export const prerender = false;
 
@@ -36,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonError("server_misconfigured", 503, apiErrorMessage("server_misconfigured"));
   }
 
-  let query = service.from("rsvps").select("id,email,full_name").eq("wedding_slug", WEDDING_SLUG);
+  let query = service.from("rsvps").select("id,email,full_name,attendance").eq("wedding_slug", WEDDING_SLUG);
   if (id) query = query.eq("id", id);
   else query = query.eq("email", email);
 
@@ -61,6 +63,13 @@ export const POST: APIRoute = async ({ request }) => {
   if (!provisioned.ok) {
     return jsonError("auth_provision_failed", 500, apiErrorMessage("auth_provision_failed"));
   }
+
+  // Send confirmation email after successful approval
+  const siteUrl = (import.meta.env.PUBLIC_SITE_URL || import.meta.env.DOMAIN || "").replace(/\/$/, "");
+  const attendance = (row.attendance === "yes" || row.attendance === "no") ? row.attendance : "yes";
+  sendRsvpEmail({ name: String(row.full_name || ""), email: guestEmail, attendance, siteUrl }).catch(err => {
+    serverLog("warn", "invite_email_failed", { email: guestEmail, message: err instanceof Error ? err.message : String(err) });
+  });
 
   return jsonOk({ email: guestEmail, status: "approved" });
 };
