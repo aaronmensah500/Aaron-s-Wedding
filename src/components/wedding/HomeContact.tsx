@@ -1,5 +1,5 @@
 const CONTACTS = [
-  { name: "Dickson", phone: "0557280570" },
+  { name: "Alex", phone: "0593859992" },
   { name: "Ruth", phone: "0549804124" },
 ];
 
