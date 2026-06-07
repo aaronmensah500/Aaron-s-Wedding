@@ -1,6 +1,6 @@
 const CONTACTS = [
   { name: "Alex", phone: "0593859992" },
-  { name: "Ruth", phone: "0549804124" },
+  { name: "Francisca", phone: "0546108677" },
 ];
 
 export function HomeContact() {
