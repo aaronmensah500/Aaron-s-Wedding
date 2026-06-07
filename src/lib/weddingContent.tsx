@@ -137,13 +137,14 @@ const WEDDING_CONTENT_DEFAULT = {
     weddingDateIso: "2026-12-12T16:30:00+00:00"
   },
   music: {
-    /** Public URL to an MP3 (upload via the editor, or place a file in /public and use /our-song.mp3). */
-    songUrl: "",
-    title: "Our Song",
-    artist: "",
     /** Show the floating play button on the site. */
     enabled: true,
-    autoplayHint: "Tap to play our song"
+    autoplayHint: "Tap to play our songs",
+    /** One or more songs. Upload MP3s via the editor, or place files in /public and use /song.mp3. */
+    tracks: [
+      { url: "", title: "Our First Dance", artist: "" },
+      { url: "", title: "Our Song", artist: "" }
+    ]
   },
   sections: {
     hero: true,
@@ -812,6 +813,25 @@ function repairMapPinTimes(merged: WeddingSiteContent): { content: WeddingSiteCo
   };
 }
 
+/** Migrate the original single-song music config ({songUrl,title,artist}) into the tracks[] array. */
+function repairMusicTracks(merged: WeddingSiteContent): { content: WeddingSiteContent; didRepair: boolean } {
+  const m = (merged as { music?: Record<string, unknown> }).music;
+  if (!m || typeof m !== "object") return { content: merged, didRepair: false };
+  if (Array.isArray((m as { tracks?: unknown }).tracks)) return { content: merged, didRepair: false };
+  const legacy = m as { songUrl?: unknown; title?: unknown; artist?: unknown };
+  const tracks = [
+    {
+      url: typeof legacy.songUrl === "string" ? legacy.songUrl : "",
+      title: typeof legacy.title === "string" && legacy.title.trim() ? legacy.title : "Our Song",
+      artist: typeof legacy.artist === "string" ? legacy.artist : "",
+    },
+  ];
+  return {
+    content: { ...merged, music: { ...m, tracks } } as WeddingSiteContent,
+    didRepair: true,
+  };
+}
+
 function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSiteContent; changed: boolean } {
   let changed = false;
   let next = merged;
@@ -826,6 +846,7 @@ function applyContentRepairs(merged: WeddingSiteContent): { content: WeddingSite
     repairMapTilerInaccessibleDemoMap,
     repairMapPinTimes,
     repairPartyMembersCount,
+    repairMusicTracks,
   ];
   for (const step of steps) {
     const r = step(next);

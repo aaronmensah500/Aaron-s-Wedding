@@ -1203,6 +1203,20 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   0% { transform: scale(0.9); opacity: 0.8; }
   100% { transform: scale(1.5); opacity: 0; }
 }
+.music-player__skip {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(217, 178, 107, 0.4);
+  background: transparent;
+  color: var(--champagne);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.music-player__skip:hover { transform: scale(1.08); background: rgba(217, 178, 107, 0.12); }
 .music-player__meta {
   display: flex;
   flex-direction: column;
@@ -1271,10 +1285,30 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
 }
 .music-player__editor {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  max-width: 260px;
+}
+.music-player__slot {
+  display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
+.music-player__slot-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--sans);
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 178, 107, 0.4);
+  background: rgba(246, 236, 216, 0.08);
+  color: var(--ivory);
+}
+.music-player__slot-input::placeholder { color: rgba(246, 236, 216, 0.45); }
+.music-player__slot-ok { color: var(--champagne); font-size: 10px; }
+.music-player__edit-btn--add { align-self: flex-start; }
 .music-player__edit-btn {
   font-family: var(--mono);
   font-size: 9px;
