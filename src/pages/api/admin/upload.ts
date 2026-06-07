@@ -6,8 +6,10 @@ import { jsonError, jsonOk } from "../../../lib/api/json";
 export const prerender = false;
 
 const BUCKET = "admin-media";
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB (images)
+const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25 MB (audio)
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
+const ALLOWED_AUDIO_TYPES = new Set(["audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/aac", "audio/mp4", "audio/x-m4a"]);
 
 export const POST: APIRoute = async ({ request }) => {
   const auth = (request.headers.get("Authorization") ?? "").trim();
@@ -27,12 +29,15 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonError("NO_FILE", 400, "No file provided.");
   }
 
-  if (!ALLOWED_TYPES.has(file.type)) {
-    return jsonError("INVALID_TYPE", 400, "Only JPEG, PNG, WebP, GIF, and AVIF images are allowed.");
+  const isImage = ALLOWED_IMAGE_TYPES.has(file.type);
+  const isAudio = ALLOWED_AUDIO_TYPES.has(file.type);
+  if (!isImage && !isAudio) {
+    return jsonError("INVALID_TYPE", 400, "Only images (JPEG, PNG, WebP, GIF, AVIF) and audio (MP3, WAV, OGG, AAC, M4A) are allowed.");
   }
 
-  if (file.size > MAX_BYTES) {
-    return jsonError("TOO_LARGE", 413, "File exceeds the 10 MB limit.");
+  const maxBytes = isAudio ? MAX_AUDIO_BYTES : MAX_BYTES;
+  if (file.size > maxBytes) {
+    return jsonError("TOO_LARGE", 413, `File exceeds the ${Math.round(maxBytes / (1024 * 1024))} MB limit.`);
   }
 
   const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";

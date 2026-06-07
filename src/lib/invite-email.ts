@@ -31,9 +31,10 @@ function inviteHtml(name: string, siteUrl: string): string {
 
       <!-- Personal greeting -->
       <tr><td style="padding:36px 40px 0;">
+        <p style="margin:0 0 6px;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.28em;text-transform:uppercase;color:#6B0F18;">Your place is confirmed</p>
         <p style="margin:0 0 16px;font-family:Georgia,serif;font-size:18px;font-weight:300;color:#2A0A0E;">Dear ${firstName},</p>
         <p style="margin:0;font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:rgba(42,10,14,0.75);">
-          Your RSVP has been received — we are so glad you will be joining us. Here are your full details for the day.
+          It's official — we would be honoured to have you celebrate with us. Your invitation is confirmed, and your full details for the day are below. We can't wait to see you there.
         </p>
       </td></tr>
 
@@ -59,7 +60,7 @@ function inviteHtml(name: string, siteUrl: string): string {
             </td>
             <td style="padding-left:24px;border-left:1px solid rgba(217,178,107,0.4);">
               <p style="margin:0;font-family:Georgia,serif;font-size:16px;font-weight:300;color:#2A0A0E;">${CEREMONY_VENUE}</p>
-              <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:13px;color:rgba(42,10,14,0.55);">Formal attire · Please arrive from 10:00 AM</p>
+              <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:13px;color:rgba(42,10,14,0.55);">Formal attire · Please arrive from 11:00 AM</p>
             </td>
           </tr>
         </table>
@@ -75,7 +76,7 @@ function inviteHtml(name: string, siteUrl: string): string {
             </td>
             <td style="padding-left:24px;border-left:1px solid rgba(217,178,107,0.4);">
               <p style="margin:0;font-family:Georgia,serif;font-size:16px;font-weight:300;color:#2A0A0E;">${RECEPTION_VENUE}</p>
-              <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:13px;color:rgba(42,10,14,0.55);">Black tie · Dinner from 3:30 PM</p>
+              <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:13px;color:rgba(42,10,14,0.55);">Wedding colours: Burgundy, Ivory &amp; Champagne · Dinner from 3:30 PM</p>
             </td>
           </tr>
         </table>
@@ -124,6 +125,43 @@ function declineHtml(name: string): string {
 </html>`;
 }
 
+function inviteText(name: string, siteUrl: string): string {
+  const firstName = name.split(" ")[0];
+  return [
+    `Dear ${firstName},`,
+    ``,
+    `Your place at our wedding is confirmed — we would be honoured to have you celebrate with us.`,
+    ``,
+    `THE DATE`,
+    `${WEDDING_DATE}`,
+    ``,
+    `CEREMONY · ${CEREMONY_TIME}`,
+    `${CEREMONY_VENUE}`,
+    `Formal attire · Please arrive from 11:00 AM`,
+    ``,
+    `RECEPTION · ${RECEPTION_TIME}`,
+    `${RECEPTION_VENUE}`,
+    `Wedding colours: Burgundy, Ivory & Champagne · Dinner from 3:30 PM`,
+    ``,
+    `Full details: ${siteUrl}`,
+    ``,
+    `With love,`,
+    `Aaron & Princess · 29 · 08 · 2026 · Accra`,
+  ].join("\n");
+}
+
+function declineText(name: string): string {
+  const firstName = name.split(" ")[0];
+  return [
+    `Dear ${firstName},`,
+    ``,
+    `Thank you for letting us know. We will be thinking of you on the day — ${WEDDING_DATE} in Accra.`,
+    ``,
+    `With love,`,
+    `Aaron & Princess`,
+  ].join("\n");
+}
+
 export async function sendRsvpEmail(opts: {
   name: string;
   email: string;
@@ -138,16 +176,31 @@ export async function sendRsvpEmail(opts: {
 
   const from =
     import.meta.env.RESEND_FROM_EMAIL || "Aaron & Princess <onboarding@resend.dev>";
+  const replyTo = import.meta.env.RESEND_REPLY_TO || undefined;
 
   serverLog("info", "invite_email_sending", { to: opts.email, from, attendance: opts.attendance });
 
   const resend = new Resend(apiKey);
 
+  // Multipart (html + text) improves deliverability — HTML-only mail scores as spam.
   const payload = opts.attendance === "yes"
-    ? { subject: "You're invited — Aaron & Princess · 29 Aug 2026", html: inviteHtml(opts.name, opts.siteUrl) }
-    : { subject: "We'll miss you — Aaron & Princess", html: declineHtml(opts.name) };
+    ? {
+        subject: "You're invited — Aaron & Princess · 29 Aug 2026",
+        html: inviteHtml(opts.name, opts.siteUrl),
+        text: inviteText(opts.name, opts.siteUrl),
+      }
+    : {
+        subject: "We'll miss you — Aaron & Princess",
+        html: declineHtml(opts.name),
+        text: declineText(opts.name),
+      };
 
-  const { data, error } = await resend.emails.send({ from, to: opts.email, ...payload });
+  const { data, error } = await resend.emails.send({
+    from,
+    to: opts.email,
+    ...(replyTo ? { replyTo } : {}),
+    ...payload,
+  });
 
   if (error) {
     serverLog("error", "invite_email_resend_error", { to: opts.email, error: JSON.stringify(error) });

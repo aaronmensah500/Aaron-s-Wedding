@@ -14,6 +14,7 @@ import { HomeContact } from "./wedding/HomeContact";
 import { TravelLogistics } from "./wedding/TravelLogistics";
 import { RSVP, BridalParty, Gallery } from "./wedding/RsvpBlock";
 import { Registry, Footer } from "./wedding/ExtrasBlock";
+import { MusicPlayer } from "./wedding/MusicPlayer";
 
 const ClientAdmin = lazy(() => import("./AdminPanel").then((m) => ({ default: m.ClientAdmin })));
 const GuestPage = lazy(() => import("./GuestPage"));
@@ -163,6 +164,8 @@ function App({ page }: AppProps) {
         </Suspense>
       ) : null}
       {showFooter && <Footer key={revision} />}
+
+      <MusicPlayer />
 
       {showSiteEditor ? (
         <Suspense>

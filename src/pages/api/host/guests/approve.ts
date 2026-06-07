@@ -64,12 +64,22 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonError("auth_provision_failed", 500, apiErrorMessage("auth_provision_failed"));
   }
 
-  // Send confirmation email after successful approval
+  // Send confirmation email after successful approval.
+  // IMPORTANT: must be awaited — on serverless (Vercel) the function instance is
+  // frozen the moment we return, so a fire-and-forget promise never reaches Resend.
   const siteUrl = (import.meta.env.PUBLIC_SITE_URL || import.meta.env.DOMAIN || "").replace(/\/$/, "");
   const attendance = (row.attendance === "yes" || row.attendance === "no") ? row.attendance : "yes";
-  sendRsvpEmail({ name: String(row.full_name || ""), email: guestEmail, attendance, siteUrl }).catch(err => {
-    serverLog("warn", "invite_email_failed", { email: guestEmail, message: err instanceof Error ? err.message : String(err) });
-  });
+  let emailSent = false;
+  try {
+    await sendRsvpEmail({ name: String(row.full_name || ""), email: guestEmail, attendance, siteUrl });
+    emailSent = true;
+  } catch (err) {
+    // Approval already succeeded — don't fail the request, just log it.
+    serverLog("warn", "invite_email_failed", {
+      email: guestEmail,
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
 
-  return jsonOk({ email: guestEmail, status: "approved" });
+  return jsonOk({ email: guestEmail, status: "approved", emailSent });
 };

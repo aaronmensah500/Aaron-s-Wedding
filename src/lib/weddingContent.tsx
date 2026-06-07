@@ -136,6 +136,15 @@ const WEDDING_CONTENT_DEFAULT = {
   site: {
     weddingDateIso: "2026-12-12T16:30:00+00:00"
   },
+  music: {
+    /** Public URL to an MP3 (upload via the editor, or place a file in /public and use /our-song.mp3). */
+    songUrl: "",
+    title: "Our Song",
+    artist: "",
+    /** Show the floating play button on the site. */
+    enabled: true,
+    autoplayHint: "Tap to play our song"
+  },
   sections: {
     hero: true,
     story: true,
