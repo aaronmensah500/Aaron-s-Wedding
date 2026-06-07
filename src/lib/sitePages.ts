@@ -39,11 +39,12 @@ export type SectionToggleKey =
   | "registry"
   | "stream"
   | "invitation"
+  | "music"
   | "footer";
 
 /** Section toggles (`content.sections`) that appear on each public page. */
 export const PAGE_SECTION_KEYS: Record<SitePageId, SectionToggleKey[]> = {
-  home: ["hero", "story", "details", "rsvp", "registry", "footer"],
+  home: ["hero", "story", "music", "details", "rsvp", "registry", "footer"],
   story: ["story", "footer"],
   wedding: ["details", "party", "footer"],
   travel: ["travel", "footer"],
@@ -64,6 +65,7 @@ export const SECTION_TOGGLE_LABELS: Record<SectionToggleKey, string> = {
   registry: "Registry",
   stream: "Livestream",
   invitation: "Guest experience (invitation cards)",
+  music: "Our songs",
   footer: "Footer",
 };
 

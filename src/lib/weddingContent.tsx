@@ -140,6 +140,12 @@ const WEDDING_CONTENT_DEFAULT = {
     /** Show the floating play button on the site. */
     enabled: true,
     autoplayHint: "Tap to play our songs",
+    /** Home "Our Songs" section heading. */
+    eyebrowLabel: "The soundtrack",
+    titleLine1: "Our ",
+    titleEm: "songs",
+    titleLine2: "",
+    lede: "The two songs that mean the most to us — press play and have a listen.",
     /** One or more songs. Upload MP3s via the editor, or place files in /public and use /song.mp3. */
     tracks: [
       { url: "", title: "Our First Dance", artist: "" },
@@ -157,6 +163,7 @@ const WEDDING_CONTENT_DEFAULT = {
     registry: true,
     stream: true,
     invitation: true,
+    music: true,
     footer: true
   },
   nav: {

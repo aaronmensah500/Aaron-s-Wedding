@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWeddingContent } from "../../lib/weddingContent";
 import { useSiteEditorOptional } from "../../lib/siteEditor";
 import { useAdminImageUpload } from "../../lib/useAdminImageUpload";
+import { announceMusicPlay, onOtherMusicPlay } from "../../lib/musicBus";
+
+const PLAYER_ID = "floating";
 
 const AUDIO_UPLOAD_ACCEPT = "audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/mp4,audio/x-m4a,audio/*";
 
@@ -67,9 +70,17 @@ export function MusicPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUrl]);
 
+  // Pause when another player (the home section) starts.
+  useEffect(() => onOtherMusicPlay(PLAYER_ID, () => {
+    const el = audioRef.current;
+    if (el && !el.paused) el.pause();
+    setPlaying(false);
+  }), []);
+
   const play = useCallback(() => {
     const el = audioRef.current;
     if (!el || !currentUrl) return;
+    announceMusicPlay(PLAYER_ID);
     void el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
   }, [currentUrl]);
 
