@@ -912,6 +912,10 @@ type WeddingContentValue = {
   patchContent: (arg: unknown | ((prev: typeof WEDDING_CONTENT_DEFAULT) => unknown)) => void;
   replaceContent: (nextFull: unknown) => void;
   resetToDefaults: () => void;
+  /** Discard unpublished local edits, reverting to the last published version (or defaults). */
+  discardLocalEdits: () => void;
+  /** True when local copy differs from the last published/loaded baseline. */
+  hasUnsavedEdits: boolean;
   revision: number;
   contentHydrated: boolean;
   publishStatus: SitePublishStatus;
@@ -929,9 +933,12 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
   const [contentHydrated, setContentHydrated] = useState(false);
   const [publishStatus, setPublishStatus] = useState<SitePublishStatus>("idle");
   const [publishError, setPublishError] = useState("");
+  const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
   const contentRef = useRef(content);
   contentRef.current = content;
   const initialContentRef = useRef(content);
+  /** Last published/loaded baseline — "Cancel edits" reverts to this. */
+  const baselineRef = useRef<WeddingSiteContent | null>(hadStoredData ? null : initialContentRef.current);
 
   const publishForEveryone = useCallback(async () => {
     if (!import.meta.env.PUBLIC_SUPABASE_URL?.trim()) {
@@ -954,6 +961,9 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
       setPublishError("");
       const published = await fetchPublishedSiteContent();
       markLocalContentEdited(published?.updatedAt ?? new Date().toISOString());
+      // What we just published is now the baseline; no unsaved edits.
+      baselineRef.current = JSON.parse(JSON.stringify(contentRef.current)) as WeddingSiteContent;
+      setHasUnsavedEdits(false);
       return { ok: true as const };
     }
     setPublishStatus("error");
@@ -973,11 +983,16 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
         merged = repaired.content;
         const localEditedAt = readLocalEditedAt();
         let applyPublished = shouldApplyPublishedSiteContent(localEditedAt, published.updatedAt);
+        // The published copy is always the revert baseline, even if local edits are newer.
+        baselineRef.current = merged;
         if (applyPublished) {
           setContent(merged);
           persistLocalContent(merged);
           if (published.updatedAt) markLocalContentEdited(published.updatedAt);
+          setHasUnsavedEdits(false);
           setRevision(r => r + 1);
+        } else {
+          setHasUnsavedEdits(true);
         }
       }
       if (!cancelled) setContentHydrated(true);
@@ -997,6 +1012,32 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     });
     setPublishStatus(s => (s === "saved" ? "idle" : s));
     setPublishError("");
+    setHasUnsavedEdits(true);
+    setRevision(r => r + 1);
+  }, []);
+
+  const discardLocalEdits = useCallback(() => {
+    const base = baselineRef.current;
+    if (base) {
+      const restored = JSON.parse(JSON.stringify(base)) as WeddingSiteContent;
+      setContent(restored);
+      persistLocalContent(restored);
+      clearLocalEditedAt();
+    } else {
+      // No published/loaded baseline (offline / no Supabase) — fall back to shipped defaults.
+      const next = cloneDefaultContent();
+      setContent(next);
+      try {
+        localStorage.removeItem(WEDDING_SITE_STORAGE_KEY);
+        localStorage.removeItem(WEDDING_SITE_STORAGE_KEY_LEGACY_V1);
+        clearLocalEditedAt();
+      } catch {
+        /* ignore */
+      }
+    }
+    setHasUnsavedEdits(false);
+    setPublishStatus("idle");
+    setPublishError("");
     setRevision(r => r + 1);
   }, []);
 
@@ -1010,6 +1051,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     markLocalContentEdited();
     setPublishStatus("idle");
     setPublishError("");
+    setHasUnsavedEdits(true);
     setRevision(r => r + 1);
   }, []);
 
@@ -1026,6 +1068,7 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
     markLocalContentEdited();
     setPublishStatus("idle");
     setPublishError("");
+    setHasUnsavedEdits(true);
     setRevision(r => r + 1);
   }, []);
 
@@ -1035,6 +1078,8 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
       patchContent,
       replaceContent,
       resetToDefaults,
+      discardLocalEdits,
+      hasUnsavedEdits,
       revision,
       contentHydrated,
       publishStatus,
@@ -1046,6 +1091,8 @@ function WeddingContentProvider({ children }: { children: ReactNode }) {
       patchContent,
       replaceContent,
       resetToDefaults,
+      discardLocalEdits,
+      hasUnsavedEdits,
       revision,
       contentHydrated,
       publishStatus,

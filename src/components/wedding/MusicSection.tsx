@@ -5,6 +5,7 @@ import { announceMusicPlay, onOtherMusicPlay } from "../../lib/musicBus";
 import { SectionHead } from "../editable/SectionTitle";
 
 const SECTION_ID = "music-section";
+const BAR_COUNT = 56; // CSS fallback bars
 
 type Track = { url?: string; title?: string; artist?: string };
 
@@ -51,6 +52,43 @@ export function MusicSection() {
     rafRef.current = null;
   }, []);
 
+  // Calm, gently breathing baseline shown while paused so the area is never empty.
+  const drawIdle = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx2d = canvas.getContext("2d");
+    if (!ctx2d) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    const mid = h / 2;
+    const bars = 48;
+    const gap = 3;
+    const barW = (w - gap * (bars - 1)) / bars;
+    let t0 = 0;
+
+    const render = (ts: number) => {
+      if (!t0) t0 = ts;
+      const t = (ts - t0) / 1000;
+      ctx2d.clearRect(0, 0, w, h);
+      for (let i = 0; i < bars; i++) {
+        // slow travelling sine → a quiet shimmer
+        const wave = Math.sin(i * 0.5 - t * 2.2) * 0.5 + 0.5;
+        const env = Math.sin((i / (bars - 1)) * Math.PI); // taller in the middle
+        const barH = Math.max(3, (4 + wave * env * 16));
+        const x = i * (barW + gap);
+        const y = mid - barH / 2;
+        ctx2d.fillStyle = "rgba(217,178,107,0.55)";
+        const r = Math.min(barW / 2, 4);
+        ctx2d.beginPath();
+        ctx2d.roundRect(x, y, barW, barH, r);
+        ctx2d.fill();
+      }
+      rafRef.current = requestAnimationFrame(render);
+    };
+    rafRef.current = requestAnimationFrame(render);
+  }, []);
+
+  // Reactive, mirrored spectrum painted from real audio data.
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const analyser = analyserRef.current;
@@ -60,16 +98,22 @@ export function MusicSection() {
 
     const bins = analyser.frequencyBinCount;
     const data = new Uint8Array(bins);
+    // Smoothed bar heights for buttery motion between frames.
+    const bars = 48;
+    const smoothed = new Array(bars).fill(0);
+    let warmFrames = 0;
 
     const render = () => {
       analyser.getByteFrequencyData(data);
       const w = canvas.width;
       const h = canvas.height;
+      const mid = h / 2;
       ctx2d.clearRect(0, 0, w, h);
 
-      const bars = 48;
-      const step = Math.floor(bins / bars);
-      const gap = 2;
+      // Use the lower ~70% of the spectrum (music energy sits there).
+      const usable = Math.floor(bins * 0.7);
+      const step = Math.max(1, Math.floor(usable / bars));
+      const gap = 3;
       const barW = (w - gap * (bars - 1)) / bars;
       let sum = 0;
 
@@ -77,25 +121,39 @@ export function MusicSection() {
         let v = 0;
         for (let j = 0; j < step; j++) v += data[i * step + j] || 0;
         v = v / step / 255; // 0..1
+        // gentle perceptual curve so quiet passages still show motion
+        v = Math.pow(v, 0.78);
         sum += v;
-        const barH = Math.max(2, v * h);
+        // smoothing: rise fast, fall slow
+        smoothed[i] = v > smoothed[i] ? v : smoothed[i] * 0.82 + v * 0.18;
+
+        const barH = Math.max(3, smoothed[i] * (h - 6));
         const x = i * (barW + gap);
-        const y = (h - barH) / 2;
+        const y = mid - barH / 2;
+
         const grad = ctx2d.createLinearGradient(0, y, 0, y + barH);
-        grad.addColorStop(0, "#D9B26B");
-        grad.addColorStop(1, "#6B0F18");
+        grad.addColorStop(0, "#F0D9A0");
+        grad.addColorStop(0.5, "#D9B26B");
+        grad.addColorStop(1, "#8A1320");
         ctx2d.fillStyle = grad;
-        const r = Math.min(barW / 2, 3);
+        ctx2d.shadowColor = "rgba(217,178,107,0.45)";
+        ctx2d.shadowBlur = 6;
+        const r = Math.min(barW / 2, 4);
         ctx2d.beginPath();
         ctx2d.roundRect(x, y, barW, barH, r);
         ctx2d.fill();
       }
+      ctx2d.shadowBlur = 0;
 
-      // If the stream is cross-origin & tainted, data stays all-zero — fall back to CSS bars.
+      // Tainted/cross-origin stream → all zeros. Give it a few frames, then fall back.
       if (sum === 0) {
-        setReactive(false);
-        stopDraw();
-        return;
+        if (++warmFrames > 12) {
+          setReactive(false);
+          stopDraw();
+          return;
+        }
+      } else {
+        warmFrames = 0;
       }
       rafRef.current = requestAnimationFrame(render);
     };
@@ -112,7 +170,7 @@ export function MusicSection() {
       const source = ctx.createMediaElementSource(audio);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.8;
+      analyser.smoothingTimeConstant = 0.82;
       source.connect(analyser);
       analyser.connect(ctx.destination);
       ctxRef.current = ctx;
@@ -130,13 +188,9 @@ export function MusicSection() {
     ensureGraph();
     void ctxRef.current?.resume();
     void audio.play().then(() => {
-      setPlaying(true);
-      if (reactive && analyserRef.current) {
-        stopDraw();
-        draw();
-      }
+      setPlaying(true); // the draw effect picks up the reactive spectrum
     }).catch(() => setPlaying(false));
-  }, [url, ensureGraph, reactive, draw, stopDraw]);
+  }, [url, ensureGraph]);
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
@@ -153,7 +207,7 @@ export function MusicSection() {
 
   const select = useCallback((i: number) => {
     setIndex(i);
-    setPlaying(true); // effect below resumes on src change
+    setPlaying(true);
   }, []);
 
   const next = useCallback(() => {
@@ -183,12 +237,19 @@ export function MusicSection() {
       return;
     }
     if (playing) {
-      void audio.play().then(() => {
-        if (reactive && analyserRef.current) { stopDraw(); draw(); }
-      }).catch(() => setPlaying(false));
+      void audio.play().catch(() => setPlaying(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
+
+  // Drive the canvas: reactive spectrum while playing, calm baseline while idle.
+  useEffect(() => {
+    if (!reactive) return;
+    stopDraw();
+    if (playing && analyserRef.current) draw();
+    else drawIdle();
+    return () => stopDraw();
+  }, [reactive, playing, draw, drawIdle, stopDraw]);
 
   useEffect(() => () => stopDraw(), [stopDraw]);
 
@@ -227,27 +288,49 @@ export function MusicSection() {
           No songs uploaded yet — use the floating player (bottom-right) to upload your MP3s.
         </p>
       ) : (
-        <div className={`music-stage reveal${playing ? " music-stage--playing" : ""}`}>
-          <div className="music-stage__disc" aria-hidden>
-            <div className="music-stage__disc-label">
-              <span>A</span>
-              <i>&amp;</i>
-              <span>P</span>
+        // `reveal` stays on a stable className so the IntersectionObserver's
+        // `.in` class is never stripped by a React re-render (e.g. on play).
+        <div className="music-stage reveal">
+          <div className={`music-stage__body${playing ? " music-stage--playing" : ""}`}>
+            {/* Spinning vinyl record — turns while a song plays */}
+            <div className="music-stage__disc" aria-hidden>
+              <div className="music-stage__disc-label">
+                <span>A</span>
+                <i>&amp;</i>
+                <span>P</span>
+              </div>
+              <span className="music-stage__disc-hole" />
             </div>
-          </div>
 
-          <div className="music-stage__body">
             <div className="music-stage__eyebrow">{playing ? "Now playing" : "Press play"}</div>
             <h3 className="music-stage__title">{title}</h3>
             {artist ? <p className="music-stage__artist">{artist}</p> : null}
 
-            <div className="music-viz" aria-hidden>
-              <canvas ref={canvasRef} width={480} height={64} className="music-viz__canvas" style={{ display: reactive ? "block" : "none" }} />
+            {/* Audio-reactive wave (canvas) with an animated CSS fallback */}
+            <div className={`music-viz${playing ? " is-playing" : ""}`} aria-hidden>
+              <canvas
+                ref={canvasRef}
+                width={560}
+                height={88}
+                className="music-viz__canvas"
+                style={{ display: reactive ? "block" : "none" }}
+              />
               {!reactive ? (
                 <div className={`music-viz__bars${playing ? " is-playing" : ""}`}>
-                  {Array.from({ length: 40 }).map((_, i) => (
-                    <i key={i} style={{ animationDelay: `${(i % 10) * -0.13}s` }} />
-                  ))}
+                  {Array.from({ length: BAR_COUNT }).map((_, i) => {
+                    // sine envelope → centre bars are tallest, like a real waveform
+                    const env = Math.sin((i / (BAR_COUNT - 1)) * Math.PI);
+                    return (
+                      <i
+                        key={i}
+                        style={{
+                          ["--peak" as string]: `${Math.round(34 + env * 56)}%`,
+                          animationDelay: `${(i * -0.045).toFixed(3)}s`,
+                          animationDuration: `${(0.7 + (i % 7) * 0.06).toFixed(2)}s`,
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               ) : null}
             </div>

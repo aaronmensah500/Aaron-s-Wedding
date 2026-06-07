@@ -232,7 +232,51 @@ function AdminArraysPanel() {
           >
             Remove last
           </button>
+          <button
+            type="button"
+            className="adm-btn adm-btn--sm adm-btn--ghost"
+            disabled={!galleryItems.some((it: { imageUrl?: string }) => !(it.imageUrl || "").trim())}
+            onClick={() => {
+              const items = galleryItems.filter((it: { imageUrl?: string }) => (it.imageUrl || "").trim());
+              patchContent({ gallery: { items: items.length ? items : galleryItems } });
+            }}
+          >
+            Remove all empty
+          </button>
         </div>
+        {galleryItems.length > 0 ? (
+          <ul className="adm-cardlist">
+            {galleryItems.map(
+              (item: { albumId?: string; caption?: string; imageUrl?: string }, gi: number) => {
+                const albumTitle = albums.find((a: { id?: string }) => a.id === item.albumId)?.title || item.albumId || "—";
+                const hasPhoto = Boolean((item.imageUrl || "").trim());
+                return (
+                  <li key={gi} className="adm-cardlist__row">
+                    <span className="adm-cardlist__idx">{String(gi + 1).padStart(2, "0")}</span>
+                    <span className="adm-cardlist__main">
+                      <span className="adm-cardlist__title">{(item.caption || "Untitled").trim()}</span>
+                      <span className="adm-cardlist__sub">
+                        {albumTitle}
+                        {hasPhoto ? "" : " · no photo"}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn--sm adm-btn--danger"
+                      aria-label={`Remove ${item.caption || "photo " + (gi + 1)}`}
+                      onClick={() => {
+                        const items = galleryItems.filter((_: unknown, idx: number) => idx !== gi);
+                        patchContent({ gallery: { items } });
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                );
+              }
+            )}
+          </ul>
+        ) : null}
       </fieldset>
       <fieldset className="adm-fieldset">
         <legend>Bridal party</legend>
@@ -421,7 +465,7 @@ function readDragPos(): { x: number; y: number } | null {
 }
 
 export function AdminToolbar() {
-  const { content, patchContent, replaceContent, resetToDefaults, publishStatus, publishError, publishForEveryone } =
+  const { content, patchContent, replaceContent, resetToDefaults, discardLocalEdits, hasUnsavedEdits, publishStatus, publishError, publishForEveryone } =
     useWeddingContent();
   const { lock, currentPage, emailAuthEnabled } = useSiteEditor();
   const pageLabel = PAGE_EDITOR_LABELS[currentPage];
@@ -572,6 +616,19 @@ export function AdminToolbar() {
         </button>
         <button type="button" className="adm-btn adm-btn--sm" onClick={() => setSheet("backup")}>
           Backup
+        </button>
+        <button
+          type="button"
+          className="adm-btn adm-btn--sm adm-btn--danger"
+          disabled={!hasUnsavedEdits}
+          title={hasUnsavedEdits ? "Discard unpublished changes" : "No unpublished changes"}
+          onClick={() => {
+            if (confirm("Discard all unpublished edits and revert to the last published version?")) {
+              discardLocalEdits();
+            }
+          }}
+        >
+          {hasUnsavedEdits ? "Cancel edits" : "No edits"}
         </button>
         <button type="button" className="adm-btn adm-btn--sm adm-btn--ghost" onClick={lock}>
           Lock
