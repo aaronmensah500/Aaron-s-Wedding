@@ -13,7 +13,7 @@ export function HomeContact() {
           </div>
           <h2 id="home-contact-title" className="section__title">
             Questions about<br />
-            <em>the service?</em>
+            <em>the ceremony?</em>
           </h2>
         </div>
         <p className="section__lede">
