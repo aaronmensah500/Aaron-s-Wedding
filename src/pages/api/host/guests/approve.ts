@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonError("server_misconfigured", 503, apiErrorMessage("server_misconfigured"));
   }
 
-  let query = service.from("rsvps").select("id,email,full_name,attendance").eq("wedding_slug", WEDDING_SLUG);
+  let query = service.from("rsvps").select("id,email,full_name,attendance,guests").eq("wedding_slug", WEDDING_SLUG);
   if (id) query = query.eq("id", id);
   else query = query.eq("email", email);
 
@@ -69,9 +69,10 @@ export const POST: APIRoute = async ({ request }) => {
   // frozen the moment we return, so a fire-and-forget promise never reaches Resend.
   const siteUrl = (import.meta.env.PUBLIC_SITE_URL || import.meta.env.DOMAIN || "").replace(/\/$/, "");
   const attendance = (row.attendance === "yes" || row.attendance === "no") ? row.attendance : "yes";
+  const guests = Math.max(1, Number((row as { guests?: number }).guests) || 1);
   let emailSent = false;
   try {
-    await sendRsvpEmail({ name: String(row.full_name || ""), email: guestEmail, attendance, siteUrl });
+    await sendRsvpEmail({ name: String(row.full_name || ""), email: guestEmail, attendance, siteUrl, guests });
     emailSent = true;
   } catch (err) {
     // Approval already succeeded — don't fail the request, just log it.

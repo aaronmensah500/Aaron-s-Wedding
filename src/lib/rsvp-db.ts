@@ -12,16 +12,29 @@ export type RsvpUpsertRow = {
   note: string;
   updated_at: string;
   status?: "pending" | "approved" | "rejected";
+  party_names?: string[];
 };
 
-function isMissingStatusColumn(error: PostgrestError | null): boolean {
+/**
+ * True when the error is "column <name> does not exist / not in schema cache"
+ * for the SPECIFIC column. PostgREST/Postgres always name the missing column in
+ * the message, so we require that — checking the code alone would match any
+ * missing column and confuse one optional column for another.
+ */
+function isMissingColumn(error: PostgrestError | null, column: string): boolean {
   if (!error) return false;
   const msg = (error.message ?? "").toLowerCase();
+  if (!msg.includes(column.toLowerCase())) return false;
   return (
     error.code === "PGRST204" ||
     error.code === "42703" ||
-    (msg.includes("status") && (msg.includes("column") || msg.includes("schema cache")))
+    msg.includes("column") ||
+    msg.includes("schema cache")
   );
+}
+
+function isMissingStatusColumn(error: PostgrestError | null): boolean {
+  return isMissingColumn(error, "status");
 }
 
 /** Read RSVP status when the approval migration has been applied. */
@@ -51,18 +64,26 @@ export async function upsertRsvpRow(
   service: SupabaseClient,
   row: RsvpUpsertRow
 ): Promise<{ ok: true; hasStatusColumn: boolean } | { ok: false; error: PostgrestError }> {
-  const withStatus = { ...row };
-  let result = await service.from("rsvps").upsert(withStatus, { onConflict: "wedding_slug,email" });
+  const conflict = { onConflict: "wedding_slug,email" } as const;
+  const payload: Record<string, unknown> = { ...row };
 
+  let result = await service.from("rsvps").upsert(payload, conflict);
   if (!result.error) return { ok: true, hasStatusColumn: true };
 
-  if (!isMissingStatusColumn(result.error) || row.status === undefined) {
-    return { ok: false, error: result.error };
+  // party_names is a newer column — if the migration hasn't run, drop it and retry.
+  if (isMissingColumn(result.error, "party_names")) {
+    delete payload.party_names;
+    result = await service.from("rsvps").upsert(payload, conflict);
+    if (!result.error) return { ok: true, hasStatusColumn: true };
   }
 
-  const { status: _s, ...withoutStatus } = withStatus;
-  result = await service.from("rsvps").upsert(withoutStatus, { onConflict: "wedding_slug,email" });
-  if (result.error) return { ok: false, error: result.error };
+  // status is also optional on older schemas — drop it and retry.
+  if (isMissingStatusColumn(result.error) && row.status !== undefined) {
+    delete payload.status;
+    result = await service.from("rsvps").upsert(payload, conflict);
+    if (result.error) return { ok: false, error: result.error };
+    return { ok: true, hasStatusColumn: false };
+  }
 
-  return { ok: true, hasStatusColumn: false };
+  return { ok: false, error: result.error };
 }

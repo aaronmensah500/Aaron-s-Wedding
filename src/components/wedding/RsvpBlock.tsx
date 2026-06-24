@@ -9,11 +9,15 @@ import { EditableText } from "../editable/EditableText";
 import { EditableImage } from "../editable/EditableImage";
 import { SectionHead } from "../editable/SectionTitle";
 
+const MAX_PARTY_SIZE = 5; // lead guest + up to 4 others
+
 type RsvpForm = {
   name: string;
   email: string;
   attendance: "yes" | "no" | null;
   events: string[];
+  guests: number;
+  partyNames: string[];
   diet: string[];
   song: string;
   note: string;
@@ -33,6 +37,8 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
     email: "",
     attendance: null,
     events: ["ceremony", "reception"],
+    guests: 1,
+    partyNames: [],
     diet: [],
     song: "",
     note: "",
@@ -48,6 +54,18 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
       ...d,
       [k]: d[k].includes(v) ? d[k].filter(x => x !== v) : [...d[k], v],
     }));
+
+  // Party size drives how many additional-guest name fields we show.
+  const setPartySize = (n: number) =>
+    setData(d => {
+      const guests = Math.min(MAX_PARTY_SIZE, Math.max(1, n));
+      const extra = guests - 1;
+      const partyNames = Array.from({ length: extra }, (_, i) => d.partyNames[i] || "");
+      return { ...d, guests, partyNames };
+    });
+
+  const setPartyName = (i: number, v: string) =>
+    setData(d => ({ ...d, partyNames: d.partyNames.map((x, idx) => (idx === i ? v : x)) }));
 
   const steps = ["Identity", "Attendance", "Preferences", "Confirmed"];
   const last = steps.length - 1;
@@ -75,6 +93,11 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
           full_name: data.name.trim(),
           attendance: data.attendance,
           events: data.events,
+          guests: data.attendance === "yes" ? data.guests : 1,
+          party_names:
+            data.attendance === "yes"
+              ? data.partyNames.map(n => n.trim()).filter(Boolean)
+              : [],
           diet: data.diet,
           song: data.song,
           note: data.note,
@@ -122,6 +145,8 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
     email: "",
     attendance: null,
     events: ["ceremony", "reception"],
+    guests: 1,
+    partyNames: [],
     diet: [],
     song: "",
     note: "",
@@ -251,6 +276,49 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
                       ))}
                     </div>
                   </div>
+
+                  <div className="field" style={{ marginTop: 16 }}>
+                    <label>How many in your party?</label>
+                    <div className="rsvp__stepper" role="group" aria-label="Party size">
+                      <button
+                        type="button"
+                        className="rsvp__stepper-btn"
+                        onClick={() => setPartySize(data.guests - 1)}
+                        disabled={data.guests <= 1}
+                        aria-label="Fewer guests"
+                      >
+                        −
+                      </button>
+                      <span className="rsvp__stepper-value" aria-live="polite">{data.guests}</span>
+                      <button
+                        type="button"
+                        className="rsvp__stepper-btn"
+                        onClick={() => setPartySize(data.guests + 1)}
+                        disabled={data.guests >= MAX_PARTY_SIZE}
+                        aria-label="More guests"
+                      >
+                        +
+                      </button>
+                      <span className="rsvp__stepper-hint">
+                        {data.guests === 1 ? "Just you" : `You + ${data.guests - 1}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {data.guests > 1 && (
+                    <div className="field" style={{ marginTop: 12 }}>
+                      <label>Who are you bringing?</label>
+                      {data.partyNames.map((nm, i) => (
+                        <input
+                          key={i}
+                          value={nm}
+                          onChange={e => setPartyName(i, e.target.value)}
+                          placeholder={`Guest ${i + 2} full name`}
+                          style={{ marginTop: i === 0 ? 0 : 8 }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>

@@ -20,20 +20,26 @@ export const GET: APIRoute = async ({ request }) => {
     return jsonError("server_misconfigured", 503, apiErrorMessage("server_misconfigured"));
   }
 
-  const { data, error } = await service
-    .from("rsvps")
-    .select(
-      "id,email,full_name,attendance,events,guests,diet,song,note,status,created_at,updated_at,login_token_hash"
-    )
-    .eq("wedding_slug", WEDDING_SLUG)
-    .order("updated_at", { ascending: false });
+  const baseCols = "id,email,full_name,attendance,events,guests,diet,song,note,status,created_at,updated_at,login_token_hash";
+  const selectGuests = (cols: string) =>
+    service
+      .from("rsvps")
+      .select(cols)
+      .eq("wedding_slug", WEDDING_SLUG)
+      .order("updated_at", { ascending: false });
 
+  let { data, error } = await selectGuests(`${baseCols},party_names`);
+  // party_names is a newer column — fall back gracefully if the migration is pending.
   if (error) {
-    return jsonError("save_failed", 500, apiErrorMessage("save_failed"));
+    ({ data, error } = await selectGuests(baseCols));
+    if (error) {
+      return jsonError("save_failed", 500, apiErrorMessage("save_failed"));
+    }
   }
 
-  const guests = (data ?? []).map(row => {
-    const { login_token_hash, ...rest } = row as Record<string, unknown> & { login_token_hash?: string | null };
+  const rows = (data ?? []) as unknown as Array<Record<string, unknown> & { login_token_hash?: string | null }>;
+  const guests = rows.map(row => {
+    const { login_token_hash, ...rest } = row;
     return { ...rest, has_login_token: Boolean(login_token_hash) };
   });
 

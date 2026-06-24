@@ -9,6 +9,7 @@ type HostGuestRow = {
   full_name: string;
   attendance: string;
   guests: number;
+  party_names?: string[];
   status: string;
   updated_at: string;
 };
@@ -144,12 +145,25 @@ export function GuestHostPanel({ session }: GuestHostPanelProps) {
               <strong>{row.full_name}</strong>
               <span className="guest-host__email">{row.email}</span>
               <span className="guest-host__meta">
-                {row.attendance === "yes" ? "Attending" : "Declined"} · {row.guests}{" "}
-                {row.guests === 1 ? "guest" : "guests"} ·{" "}
+                {row.attendance === "yes" ? "Attending" : "Declined"} ·{" "}
+                {row.attendance === "yes"
+                  ? `Party of ${row.guests}`
+                  : `${row.guests} ${row.guests === 1 ? "guest" : "guests"}`}{" "}
+                ·{" "}
                 <span className={`guest-host__status guest-host__status--${row.status}`}>
                   {row.status}
                 </span>
               </span>
+              {Array.isArray(row.party_names) && row.party_names.length > 0 ? (
+                <span className="guest-host__party">
+                  <span className="guest-host__party-label">Bringing</span>
+                  {row.party_names.map((n, i) => (
+                    <span key={i} className="guest-host__party-name">
+                      {n}
+                    </span>
+                  ))}
+                </span>
+              ) : null}
             </div>
             {row.status === "pending" ? (
               <div className="guest-host__actions">

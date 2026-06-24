@@ -722,6 +722,24 @@
 .field--row > * { flex: 1; }
 
 .choice-row { display: flex; gap: 8px; flex-wrap: wrap; max-width: 100%; }
+
+/* Party-size stepper */
+.rsvp__stepper { display: flex; align-items: center; gap: 12px; }
+.rsvp__stepper-btn {
+  width: 44px; height: 44px; flex: none;
+  border: 1px solid var(--hairline); border-radius: 50%;
+  background: transparent; color: var(--fg, inherit);
+  font-size: 22px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+  transition: border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+.rsvp__stepper-btn:hover:not(:disabled) { border-color: var(--champagne); background: rgba(217, 178, 107, 0.12); }
+.rsvp__stepper-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.rsvp__stepper-value {
+  font-family: var(--serif, inherit); font-size: 26px; font-weight: 300;
+  min-width: 28px; text-align: center;
+}
+.rsvp__stepper-hint { font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
 .choice {
   font-family: var(--sans); font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
   padding: 14px 24px; border: 1px solid var(--hairline); border-radius: 999px;
@@ -1420,6 +1438,29 @@
 .guest-host__row-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .guest-host__email { font-size: 13px; color: var(--muted); word-break: break-all; }
 .guest-host__meta { font-size: 12px; color: var(--muted); }
+.guest-host__party {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--hairline, rgba(42, 10, 14, 0.12));
+}
+.guest-host__party-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.guest-host__party-name {
+  font-size: 12px;
+  color: var(--fg, inherit);
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(217, 178, 107, 0.16);
+  border: 1px solid rgba(217, 178, 107, 0.32);
+}
 .guest-host__status { text-transform: capitalize; }
 .guest-host__status--pending { color: var(--burgundy); }
 .guest-host__status--approved { color: var(--champagne); }

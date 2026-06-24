@@ -7,8 +7,14 @@ const WEDDING_DATE = "Saturday, 29th August 2026";
 const CEREMONY_VENUE = "Agape House, Pawpaw Street, East Legon, Accra";
 const RECEPTION_VENUE = "Airforce Officers' Mess, Giffard Road, Cantonments, Accra";
 
-function inviteHtml(name: string, siteUrl: string): string {
+function partyLine(guests: number): string {
+  if (!guests || guests <= 1) return "";
+  return `Your party of ${guests} is confirmed. `;
+}
+
+function inviteHtml(name: string, siteUrl: string, guests: number): string {
   const firstName = name.split(" ")[0];
+  const party = partyLine(guests);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,7 +40,7 @@ function inviteHtml(name: string, siteUrl: string): string {
         <p style="margin:0 0 6px;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.28em;text-transform:uppercase;color:#6B0F18;">Your place is confirmed</p>
         <p style="margin:0 0 16px;font-family:Georgia,serif;font-size:18px;font-weight:300;color:#2A0A0E;">Dear ${firstName},</p>
         <p style="margin:0;font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:rgba(42,10,14,0.75);">
-          It's official — we would be honoured to have you celebrate with us. Your invitation is confirmed, and your full details for the day are below. We can't wait to see you there.
+          It's official — we would be honoured to have you celebrate with us. ${party}Your invitation is confirmed, and your full details for the day are below. We can't wait to see you there.
         </p>
       </td></tr>
 
@@ -125,12 +131,13 @@ function declineHtml(name: string): string {
 </html>`;
 }
 
-function inviteText(name: string, siteUrl: string): string {
+function inviteText(name: string, siteUrl: string, guests: number): string {
   const firstName = name.split(" ")[0];
+  const party = partyLine(guests);
   return [
     `Dear ${firstName},`,
     ``,
-    `Your place at our wedding is confirmed — we would be honoured to have you celebrate with us.`,
+    `Your place at our wedding is confirmed — we would be honoured to have you celebrate with us.${party ? ` ${party.trim()}` : ""}`,
     ``,
     `THE DATE`,
     `${WEDDING_DATE}`,
@@ -167,6 +174,7 @@ export async function sendRsvpEmail(opts: {
   email: string;
   attendance: "yes" | "no";
   siteUrl: string;
+  guests?: number;
 }): Promise<void> {
   const apiKey = import.meta.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -183,11 +191,12 @@ export async function sendRsvpEmail(opts: {
   const resend = new Resend(apiKey);
 
   // Multipart (html + text) improves deliverability — HTML-only mail scores as spam.
+  const guests = Math.max(1, Number(opts.guests) || 1);
   const payload = opts.attendance === "yes"
     ? {
         subject: "You're invited — Aaron & Princess · 29 Aug 2026",
-        html: inviteHtml(opts.name, opts.siteUrl),
-        text: inviteText(opts.name, opts.siteUrl),
+        html: inviteHtml(opts.name, opts.siteUrl, guests),
+        text: inviteText(opts.name, opts.siteUrl, guests),
       }
     : {
         subject: "We'll miss you — Aaron & Princess",

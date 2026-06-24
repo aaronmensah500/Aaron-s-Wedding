@@ -12,6 +12,7 @@ export const prerender = false;
 
 const RSVP_WINDOW_MS = 15 * 60 * 1000;
 const RSVP_MAX_PER_WINDOW = 24;
+const MAX_PARTY_SIZE = 5; // lead guest + up to 4 others
 
 type RsvpBody = {
   email?: string;
@@ -19,6 +20,7 @@ type RsvpBody = {
   attendance?: string;
   events?: string[];
   guests?: number;
+  party_names?: string[];
   diet?: string[];
   song?: string;
   note?: string;
@@ -69,9 +71,21 @@ export const POST: APIRoute = async ({ request }) => {
   const attendance = body.attendance as "yes" | "no";
   const events = Array.isArray(body.events) ? body.events.map(String) : [];
   const diet = Array.isArray(body.diet) ? body.diet.map(String) : [];
-  const guests = 1;
   const song = String(body.song || "").slice(0, 500);
   const note = String(body.note || "").slice(0, 4000);
+
+  // Party size only applies when attending. Clamp the headcount to a safe range
+  // and keep only the names of the ADDITIONAL guests (lead guest excluded).
+  let guests = 1;
+  let party_names: string[] = [];
+  if (attendance === "yes") {
+    const raw = Number(body.guests);
+    guests = Number.isFinite(raw) ? Math.min(MAX_PARTY_SIZE, Math.max(1, Math.floor(raw))) : 1;
+    party_names = (Array.isArray(body.party_names) ? body.party_names : [])
+      .map(n => String(n || "").trim().slice(0, 120))
+      .filter(Boolean)
+      .slice(0, guests - 1);
+  }
 
   let existingStatus: "pending" | "approved" | "rejected" | null = null;
   try {
@@ -93,6 +107,7 @@ export const POST: APIRoute = async ({ request }) => {
     attendance,
     events,
     guests,
+    party_names,
     diet,
     song,
     note,

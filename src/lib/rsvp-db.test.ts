@@ -51,4 +51,71 @@ describe("rsvp-db", () => {
     expect(result).toEqual({ ok: true, hasStatusColumn: false });
     expect(calls).toEqual(["with-status", "without-status"]);
   });
+
+  it("falls back when party_names column is missing (keeps status)", async () => {
+    const calls: string[] = [];
+    const service = {
+      from: () => ({
+        upsert: (row: Record<string, unknown>) => {
+          calls.push("party_names" in row ? "with-party" : "without-party");
+          if ("party_names" in row) {
+            return Promise.resolve({
+              error: { code: "PGRST204", message: "Could not find the 'party_names' column of 'rsvps' in the schema cache" },
+            });
+          }
+          return Promise.resolve({ error: null });
+        },
+      }),
+    } as never;
+
+    const result = await upsertRsvpRow(service, {
+      wedding_slug: "primary",
+      email: "a@b.com",
+      full_name: "Ada",
+      attendance: "yes",
+      events: [],
+      guests: 3,
+      party_names: ["Bee", "Cee"],
+      diet: [],
+      song: "",
+      note: "",
+      status: "pending",
+      updated_at: new Date().toISOString(),
+    });
+
+    // Drops only party_names and keeps the status column intact.
+    expect(result).toEqual({ ok: true, hasStatusColumn: true });
+    expect(calls).toEqual(["with-party", "without-party"]);
+  });
+
+  it("upserts in a single call when all columns exist", async () => {
+    const calls: Record<string, unknown>[] = [];
+    const service = {
+      from: () => ({
+        upsert: (row: Record<string, unknown>) => {
+          calls.push(row);
+          return Promise.resolve({ error: null });
+        },
+      }),
+    } as never;
+
+    const result = await upsertRsvpRow(service, {
+      wedding_slug: "primary",
+      email: "a@b.com",
+      full_name: "Ada",
+      attendance: "yes",
+      events: [],
+      guests: 2,
+      party_names: ["Bee"],
+      diet: [],
+      song: "",
+      note: "",
+      status: "pending",
+      updated_at: new Date().toISOString(),
+    });
+
+    expect(result).toEqual({ ok: true, hasStatusColumn: true });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ guests: 2, party_names: ["Bee"], status: "pending" });
+  });
 });
