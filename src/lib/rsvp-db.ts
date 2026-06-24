@@ -60,6 +60,41 @@ export async function fetchExistingRsvpStatus(
   return null;
 }
 
+export type ExistingRsvp = {
+  status: "pending" | "approved" | "rejected" | null;
+  guests: number;
+};
+
+/**
+ * Read the existing RSVP's status AND party size for an email, so the API can
+ * decide whether an edit needs re-approval (e.g. the party grew). Returns null
+ * when there's no prior RSVP for this email.
+ */
+export async function fetchExistingRsvp(
+  service: SupabaseClient,
+  weddingSlug: string,
+  email: string
+): Promise<ExistingRsvp | null> {
+  const where = (cols: string) =>
+    service.from("rsvps").select(cols).eq("wedding_slug", weddingSlug).eq("email", email).maybeSingle();
+
+  let { data, error } = await where("status,guests");
+  // Older schemas without the status column: fall back to guests only.
+  if (error && isMissingStatusColumn(error)) {
+    ({ data, error } = await where("guests"));
+    if (error) throw error;
+    if (!data) return null;
+    return { status: null, guests: Number((data as { guests?: number }).guests) || 1 };
+  }
+  if (error) throw error;
+  if (!data) return null;
+
+  const row = data as { status?: string; guests?: number };
+  const s = row.status;
+  const status = s === "approved" || s === "pending" || s === "rejected" ? s : null;
+  return { status, guests: Number(row.guests) || 1 };
+}
+
 export async function upsertRsvpRow(
   service: SupabaseClient,
   row: RsvpUpsertRow

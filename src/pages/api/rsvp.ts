@@ -6,7 +6,7 @@ import { getClientIp } from "../../lib/api/request-meta";
 import { serverLog } from "../../lib/server-log";
 import { apiErrorMessage, type ApiErrorCode } from "../../i18n/en";
 import { WEDDING_SLUG } from "../../lib/guest-access";
-import { fetchExistingRsvpStatus, upsertRsvpRow } from "../../lib/rsvp-db";
+import { fetchExistingRsvp, upsertRsvpRow } from "../../lib/rsvp-db";
 
 export const prerender = false;
 
@@ -87,9 +87,9 @@ export const POST: APIRoute = async ({ request }) => {
       .slice(0, guests - 1);
   }
 
-  let existingStatus: "pending" | "approved" | "rejected" | null = null;
+  let existing: { status: "pending" | "approved" | "rejected" | null; guests: number } | null = null;
   try {
-    existingStatus = await fetchExistingRsvpStatus(admin, WEDDING_SLUG, email);
+    existing = await fetchExistingRsvp(admin, WEDDING_SLUG, email);
   } catch (selErr) {
     serverLog("error", "rsvp_select_failed", {
       ip,
@@ -98,7 +98,11 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonError("save_failed", 500, apiErrorMessage("save_failed"));
   }
 
-  const status = existingStatus === "approved" ? "approved" : "pending";
+  // An approved guest stays approved when editing — UNLESS their party grew,
+  // in which case it returns to "pending" so the hosts re-approve the extra heads.
+  const wasApproved = existing?.status === "approved";
+  const partyGrew = guests > (existing?.guests ?? 1);
+  const status = wasApproved && !partyGrew ? "approved" : "pending";
 
   const saved = await upsertRsvpRow(admin, {
     wedding_slug: WEDDING_SLUG,

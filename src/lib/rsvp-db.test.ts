@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { fetchExistingRsvpStatus, upsertRsvpRow } from "./rsvp-db";
+import { fetchExistingRsvp, fetchExistingRsvpStatus, upsertRsvpRow } from "./rsvp-db";
+
+function singleRowService(row: Record<string, unknown> | null, error: unknown = null) {
+  return {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: row, error }),
+          }),
+        }),
+      }),
+    }),
+  } as never;
+}
 
 describe("rsvp-db", () => {
   it("falls back when status column is missing", async () => {
@@ -86,6 +100,20 @@ describe("rsvp-db", () => {
     // Drops only party_names and keeps the status column intact.
     expect(result).toEqual({ ok: true, hasStatusColumn: true });
     expect(calls).toEqual(["with-party", "without-party"]);
+  });
+
+  it("fetchExistingRsvp returns status and party size", async () => {
+    const existing = await fetchExistingRsvp(
+      singleRowService({ status: "approved", guests: 3 }),
+      "primary",
+      "a@b.com"
+    );
+    expect(existing).toEqual({ status: "approved", guests: 3 });
+  });
+
+  it("fetchExistingRsvp returns null when no prior RSVP", async () => {
+    const existing = await fetchExistingRsvp(singleRowService(null), "primary", "new@b.com");
+    expect(existing).toBe(null);
   });
 
   it("upserts in a single call when all columns exist", async () => {

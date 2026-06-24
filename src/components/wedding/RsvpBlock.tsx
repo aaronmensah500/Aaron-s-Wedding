@@ -23,6 +23,32 @@ type RsvpForm = {
   note: string;
 };
 
+// Remember this device's own last reply so a returning guest can edit/add
+// without retyping. Stored locally only — never a server lookup by email,
+// which would leak other guests' details to anyone who guesses their address.
+const RSVP_DRAFT_KEY = "wedding:rsvp:self:v1";
+
+function loadRsvpDraft(): Partial<RsvpForm> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(RSVP_DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as Partial<RsvpForm>;
+    return d && typeof d === "object" ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveRsvpDraft(form: RsvpForm): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(RSVP_DRAFT_KEY, JSON.stringify(form));
+  } catch {
+    /* ignore quota / privacy-mode errors */
+  }
+}
+
 // ============================================================
 // RSVP — multi step
 // ============================================================
@@ -32,6 +58,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
   const [step, setStep] = useState(initialStep);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [prefilled, setPrefilled] = useState(false);
   const [data, setData] = useState<RsvpForm>({
     name: "",
     email: "",
@@ -47,6 +74,22 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
   useEffect(() => {
     setStep(initialStep);
   }, [initialStep]);
+
+  // Rehydrate this device's previous reply (done after mount to avoid SSR
+  // hydration mismatch). Lets returning guests edit/add without retyping.
+  useEffect(() => {
+    const draft = loadRsvpDraft();
+    if (!draft || !draft.email) return;
+    setData(d => ({
+      ...d,
+      ...draft,
+      events: Array.isArray(draft.events) ? draft.events : d.events,
+      partyNames: Array.isArray(draft.partyNames) ? draft.partyNames : d.partyNames,
+      diet: Array.isArray(draft.diet) ? draft.diet : d.diet,
+      guests: typeof draft.guests === "number" ? draft.guests : d.guests,
+    }));
+    setPrefilled(true);
+  }, []);
 
   const set = <K extends keyof RsvpForm>(k: K, v: RsvpForm[K]) => setData(d => ({ ...d, [k]: v }));
   const toggle = (k: "events" | "diet", v: string) =>
@@ -113,6 +156,8 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
         );
         return false;
       }
+      // Remember this reply on the device so they can return and edit it.
+      saveRsvpDraft(data);
       return true;
     } finally {
       setSubmitting(false);
@@ -154,6 +199,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
 
   const resetForm = () => {
     setData(initialForm());
+    setPrefilled(false);
     setStep(0);
   };
 
@@ -231,6 +277,11 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
 
           {step === 0 && (
             <div className="rsvp__panel">
+              {prefilled && (
+                <p className="rsvp__prefill-note" role="status">
+                  Welcome back — we loaded your last reply. Update anything (like adding to your party) and resend.
+                </p>
+              )}
               <div className="eyebrow">
                 <EditableText value={r.step1Eyebrow} onChange={v => patchContent({ rsvp: { step1Eyebrow: v } })} />
               </div>
