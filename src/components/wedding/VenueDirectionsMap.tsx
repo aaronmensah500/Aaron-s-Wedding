@@ -35,9 +35,7 @@ export function VenueDirectionsMap({ className = "" }: VenueDirectionsMapProps) 
   const mapTilerKey = (import.meta.env.PUBLIC_MAPTILER_API_KEY as string | undefined)?.trim();
   const cerLat = parseCoord(d.ceremonyLat);
   const cerLng = parseCoord(d.ceremonyLng);
-  const recLat = parseCoord(d.receptionLat);
-  const recLng = parseCoord(d.receptionLng);
-  const coordsOk = cerLat != null && cerLng != null && recLat != null && recLng != null;
+  const coordsOk = cerLat != null && cerLng != null;
   /** Custom map image overrides interactive pins. Leaflet when coords exist. */
   const useVenueLeaflet = !hasMapImage && coordsOk;
   const venueBasemap: "maptiler" | "osm" = mapTilerId && mapTilerKey ? "maptiler" : "osm";
@@ -89,10 +87,7 @@ export function VenueDirectionsMap({ className = "" }: VenueDirectionsMapProps) 
               mapTilerApiKey={mapTilerKey ?? ""}
               ceremonyLat={cerLat!}
               ceremonyLng={cerLng!}
-              receptionLat={recLat!}
-              receptionLng={recLng!}
               ceremonyTooltip={d.mapPinCeremony || "Ceremony"}
-              receptionTooltip={d.mapPinReception || "Reception"}
               guestTooltip={d.mapYouTooltip || "You"}
               useLocationLabel={d.mapUseLocationLabel || "Use my location"}
               locatingLabel={d.mapLocatingLabel || "Locating…"}
@@ -102,7 +97,6 @@ export function VenueDirectionsMap({ className = "" }: VenueDirectionsMapProps) 
               unavailableBody={d.mapGeoErrorBody}
               ariaLabel={d.mapEmbedTitle || "Venue map"}
               toCeremonyGoogleLabel={d.mapDirCeremonyGoogleLabel || "Google · to ceremony"}
-              toReceptionGoogleLabel={d.mapDirReceptionGoogleLabel || "Google · to reception"}
               directionsMenuLabel={d.mapDirectionsMenuLabel || "Directions"}
             />
           </Suspense>
@@ -147,11 +141,8 @@ export function VenueDirectionsMap({ className = "" }: VenueDirectionsMapProps) 
         <circle cx="380" cy="190" r="3" fill="rgba(26,23,20,0.3)" />
         <circle cx="900" cy="240" r="3" fill="rgba(26,23,20,0.3)" />
       </svg>
-      <div className="pin" style={{ left: "32%", top: "55%" }}>
+      <div className="pin" style={{ left: "50%", top: "50%" }}>
         <EditableText value={d.mapPinCeremony} onChange={v => patchContent({ details: { mapPinCeremony: v } })} />
-      </div>
-      <div className="pin pin--gold" style={{ left: "62%", top: "38%" }}>
-        <EditableText value={d.mapPinReception} onChange={v => patchContent({ details: { mapPinReception: v } })} />
       </div>
     </div>
   );

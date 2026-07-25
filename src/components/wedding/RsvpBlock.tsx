@@ -63,7 +63,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
     name: "",
     email: "",
     attendance: null,
-    events: ["ceremony", "reception"],
+    events: ["ceremony"],
     guests: 1,
     partyNames: [],
     diet: [],
@@ -189,7 +189,7 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
     name: "",
     email: "",
     attendance: null,
-    events: ["ceremony", "reception"],
+    events: ["ceremony"],
     guests: 1,
     partyNames: [],
     diet: [],
@@ -317,17 +317,6 @@ export function RSVP({ initialStep = 0 }: { initialStep?: number }) {
               </div>
               {data.attendance === "yes" && (
                 <>
-                  <div className="field" style={{ marginTop: 16 }}>
-                    <label>
-                      <EditableText value={r.eventsLabel} onChange={v => patchContent({ rsvp: { eventsLabel: v } })} />
-                    </label>
-                    <div className="choice-row">
-                      {["ceremony","reception"].map(ev => (
-                        <button type="button" key={ev} className={`choice ${data.events.includes(ev) ? "selected" : ""}`} onClick={() => toggle("events", ev)}>{ev}</button>
-                      ))}
-                    </div>
-                  </div>
-
                   <div className="field" style={{ marginTop: 16 }}>
                     <label>How many in your party?</label>
                     <div className="rsvp__stepper" role="group" aria-label="Party size">

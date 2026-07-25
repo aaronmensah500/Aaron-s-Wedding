@@ -2,10 +2,8 @@ import { Resend } from "resend";
 import { serverLog } from "./server-log";
 
 const CEREMONY_TIME = "11:30 AM";
-const RECEPTION_TIME = "3:30 PM";
 const WEDDING_DATE = "Saturday, 29th August 2026";
 const CEREMONY_VENUE = "Agape House, Pawpaw Street, East Legon, Accra";
-const RECEPTION_VENUE = "Airforce Officers' Mess, Giffard Road, Cantonments, Accra";
 
 function partyLine(guests: number): string {
   if (!guests || guests <= 1) return "";
@@ -72,17 +70,16 @@ function inviteHtml(name: string, siteUrl: string, guests: number): string {
         </table>
       </td></tr>
 
-      <!-- Reception -->
+      <!-- Dress code -->
       <tr><td style="padding:20px 40px 0;">
         <table role="presentation" width="100%" style="border-top:1px solid rgba(42,10,14,0.08);padding-top:20px;">
           <tr>
             <td width="90" valign="top">
-              <p style="margin:0;font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.3em;text-transform:uppercase;color:rgba(42,10,14,0.45);">Reception</p>
-              <p style="margin:4px 0 0;font-family:'Courier New',monospace;font-size:14px;font-weight:bold;color:#2A0A0E;">${RECEPTION_TIME}</p>
+              <p style="margin:0;font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.3em;text-transform:uppercase;color:rgba(42,10,14,0.45);">Attire</p>
             </td>
             <td style="padding-left:24px;border-left:1px solid rgba(217,178,107,0.4);">
-              <p style="margin:0;font-family:Georgia,serif;font-size:16px;font-weight:300;color:#2A0A0E;">${RECEPTION_VENUE}</p>
-              <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:13px;color:rgba(42,10,14,0.55);">Wedding colours: Burgundy, Ivory &amp; Champagne · Dinner from 3:30 PM</p>
+              <p style="margin:0;font-family:Georgia,serif;font-size:16px;font-weight:300;color:#2A0A0E;">Formal</p>
+              <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:13px;color:rgba(42,10,14,0.55);">Wedding colours: Burgundy, Ivory &amp; Champagne</p>
             </td>
           </tr>
         </table>
@@ -146,9 +143,7 @@ function inviteText(name: string, siteUrl: string, guests: number): string {
     `${CEREMONY_VENUE}`,
     `Formal attire · Please arrive from 11:00 AM`,
     ``,
-    `RECEPTION · ${RECEPTION_TIME}`,
-    `${RECEPTION_VENUE}`,
-    `Wedding colours: Burgundy, Ivory & Champagne · Dinner from 3:30 PM`,
+    `Wedding colours: Burgundy, Ivory & Champagne`,
     ``,
     `Full details: ${siteUrl}`,
     ``,

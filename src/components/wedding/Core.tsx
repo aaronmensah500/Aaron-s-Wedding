@@ -495,12 +495,9 @@ export function Details() {
   const { content, patchContent } = useWeddingContent();
   const d = content.details || {};
   const cer = d.ceremonyCard || {};
-  const rec = d.receptionCard || {};
 
   const patchCer = (partial: Record<string, string>) =>
     patchContent({ details: { ceremonyCard: { ...(cer as Record<string, unknown>), ...partial } } });
-  const patchRec = (partial: Record<string, string>) =>
-    patchContent({ details: { receptionCard: { ...(rec as Record<string, unknown>), ...partial } } });
   const patchItin = (i: number, partial: Record<string, string>) => {
     const updated = [...(d.itinerary || [])];
     updated[i] = { ...updated[i], ...partial };
@@ -519,7 +516,7 @@ export function Details() {
         onPatch={p => patchContent({ details: p })}
       />
 
-      <div className="details__grid reveal-stagger">
+      <div className="details__grid details__grid--single reveal-stagger">
         <article className="details__card">
           <div className="details__card-body">
             <div className="eyebrow">
@@ -545,36 +542,6 @@ export function Details() {
               <div>
                 <span><EditableText value={cer.attireLabel || "Attire"} onChange={v => patchCer({ attireLabel: v })} /></span>
                 <strong><EditableText value={cer.attireValue} onChange={v => patchCer({ attireValue: v })} /></strong>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <article className="details__card">
-          <div className="details__card-body">
-            <div className="eyebrow">
-              <EditableText value={rec.eyebrow} onChange={v => patchRec({ eyebrow: v })} />
-            </div>
-            <h3>
-              <EditableText value={rec.title} onChange={v => patchRec({ title: v })} />
-            </h3>
-            <p className="addr">
-              <EditableText value={rec.addrLine1} onChange={v => patchRec({ addrLine1: v })} />
-              <br />
-              <EditableText value={rec.addrLine2} onChange={v => patchRec({ addrLine2: v })} />
-            </p>
-            <div className="meta">
-              <div>
-                <span><EditableText value={rec.dinnerLabel || "Dinner"} onChange={v => patchRec({ dinnerLabel: v })} /></span>
-                <strong><EditableText value={rec.dinnerTime} onChange={v => patchRec({ dinnerTime: v })} /></strong>
-              </div>
-              <div>
-                <span><EditableText value={rec.dancingLabel || "Dancing"} onChange={v => patchRec({ dancingLabel: v })} /></span>
-                <strong><EditableText value={rec.dancingTime} onChange={v => patchRec({ dancingTime: v })} /></strong>
-              </div>
-              <div>
-                <span><EditableText value={rec.attireLabel || "Attire"} onChange={v => patchRec({ attireLabel: v })} /></span>
-                <strong><EditableText value={rec.attireValue} onChange={v => patchRec({ attireValue: v })} /></strong>
               </div>
             </div>
           </div>

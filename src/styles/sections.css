@@ -53,6 +53,7 @@
 
 /* ----- WEDDING DETAILS ----- */
 .details__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.details__grid--single { grid-template-columns: 1fr; max-width: 560px; margin-left: auto; margin-right: auto; }
 .details__card {
   position: relative; padding: 0; overflow: hidden;
   background: var(--warm-white); border: 1px solid var(--hairline);
@@ -69,6 +70,51 @@
 .details__card .meta { display: flex; gap: 32px; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--hairline); }
 .details__card .meta div span { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .details__card .meta div strong { font-family: var(--serif); font-weight: 400; font-size: 18px; }
+
+/* ===== Wedding colours band ===== */
+.colours__row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 44px;
+}
+.colours__swatch {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.colours__chip {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  display: block;
+  box-shadow: 0 2px 20px rgba(42, 10, 14, 0.14), inset 0 0 0 1px rgba(42, 10, 14, 0.08);
+}
+.colours__caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+}
+.colours__name {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 300;
+  color: var(--fg);
+}
+.colours__hex {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  .colours__row { gap: 28px; }
+  .colours__chip { width: 84px; height: 84px; }
+}
 
 .details__map {
   margin-top: 56px;
@@ -436,9 +482,6 @@
 .details-venue-pinmark--ceremony .details-venue-pinmark__label {
   border-bottom: 2px solid var(--soft-black);
 }
-.details-venue-pinmark--reception .details-venue-pinmark__label {
-  border-bottom: 2px solid var(--champagne);
-}
 .details-venue-pinmark__dot {
   width: 18px;
   height: 18px;
@@ -449,10 +492,6 @@
 }
 .details-venue-pinmark--ceremony .details-venue-pinmark__dot {
   background: var(--soft-black);
-}
-.details-venue-pinmark--reception .details-venue-pinmark__dot {
-  background: var(--champagne);
-  border-color: var(--soft-black);
 }
 .details-venue-marker {
   width: 18px;

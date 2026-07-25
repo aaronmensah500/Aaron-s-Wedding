@@ -402,8 +402,6 @@ function AdminAdvancedPanel() {
       <AdminTextField label="MapTiler map id" value={d.mapTilerMapId} onChange={v => patchContent({ details: { mapTilerMapId: v } })} />
       <AdminTextField label="Ceremony latitude" value={d.ceremonyLat} onChange={v => patchContent({ details: { ceremonyLat: v } })} />
       <AdminTextField label="Ceremony longitude" value={d.ceremonyLng} onChange={v => patchContent({ details: { ceremonyLng: v } })} />
-      <AdminTextField label="Reception latitude" value={d.receptionLat} onChange={v => patchContent({ details: { receptionLat: v } })} />
-      <AdminTextField label="Reception longitude" value={d.receptionLng} onChange={v => patchContent({ details: { receptionLng: v } })} />
       <AdminTextField label="Map image alt" value={d.mapImageAlt} onChange={v => patchContent({ details: { mapImageAlt: v } })} />
       <AdminTextField label="Map image link URL" value={d.mapImageLinkUrl} onChange={v => patchContent({ details: { mapImageLinkUrl: v } })} />
     </div>

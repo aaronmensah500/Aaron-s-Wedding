@@ -77,7 +77,7 @@ export function TravelLogistics() {
 
   const gBtn = t.googleMapsBtnLabel || "Google Maps";
 
-  const patchLeg = (key: "airport" | "hotel" | "ceremony" | "reception", partial: Record<string, string>) => {
+  const patchLeg = (key: "airport" | "hotel" | "ceremony", partial: Record<string, string>) => {
     const current = (t[key] as Record<string, unknown>) || {};
     patchContent({ travelLogistics: { [key]: { ...current, ...partial } } });
   };
@@ -113,7 +113,6 @@ export function TravelLogistics() {
         <TravelLegCard leg={t.airport || {}} googleLabel={gBtn} onPatch={p => patchLeg("airport", p)} />
         <TravelLegCard leg={t.hotel || {}} googleLabel={gBtn} onPatch={p => patchLeg("hotel", p)} />
         <TravelLegCard leg={t.ceremony || {}} googleLabel={gBtn} onPatch={p => patchLeg("ceremony", p)} />
-        <TravelLegCard leg={t.reception || {}} googleLabel={gBtn} onPatch={p => patchLeg("reception", p)} />
       </div>
 
       <footer className="travel__foot reveal">

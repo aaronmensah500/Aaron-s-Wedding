@@ -17,7 +17,7 @@ function escapeHtmlText(s: string): string {
 }
 
 /** Label above dot; map coordinate = center of dot. */
-function venuePinIcon(kind: "ceremony" | "reception", label: string): L.DivIcon {
+function venuePinIcon(label: string): L.DivIcon {
   const safe = escapeHtmlText(label);
   const lineChars = 22;
   const lines = Math.max(1, Math.min(4, Math.ceil(label.length / lineChars)));
@@ -28,10 +28,9 @@ function venuePinIcon(kind: "ceremony" | "reception", label: string): L.DivIcon 
   const H = labelH + gap + dotD;
   const ax = W / 2;
   const ay = labelH + gap + dotD / 2;
-  const k = kind === "ceremony" ? "ceremony" : "reception";
   return L.divIcon({
     className: "details-venue-div-icon details-venue-div-icon--pinmark",
-    html: `<div class="details-venue-pinmark details-venue-pinmark--${k}" style="width:${W}px;height:${H}px">
+    html: `<div class="details-venue-pinmark details-venue-pinmark--ceremony" style="width:${W}px;height:${H}px">
       <div class="details-venue-pinmark__dot" role="presentation"></div>
       <span class="details-venue-pinmark__label">${safe}</span>
     </div>`,
@@ -79,10 +78,7 @@ export type DetailsVenueLeafletProps = {
   mapTilerApiKey: string;
   ceremonyLat: number;
   ceremonyLng: number;
-  receptionLat: number;
-  receptionLng: number;
   ceremonyTooltip: string;
-  receptionTooltip: string;
   guestTooltip: string;
   useLocationLabel: string;
   locatingLabel: string;
@@ -92,9 +88,10 @@ export type DetailsVenueLeafletProps = {
   unavailableBody?: string;
   ariaLabel: string;
   toCeremonyGoogleLabel: string;
-  toReceptionGoogleLabel: string;
   directionsMenuLabel: string;
 };
+
+const VENUE_ZOOM = 15;
 
 export function DetailsVenueLeaflet({
   basemap,
@@ -102,10 +99,7 @@ export function DetailsVenueLeaflet({
   mapTilerApiKey,
   ceremonyLat,
   ceremonyLng,
-  receptionLat,
-  receptionLng,
   ceremonyTooltip,
-  receptionTooltip,
   guestTooltip,
   useLocationLabel,
   locatingLabel,
@@ -115,7 +109,6 @@ export function DetailsVenueLeaflet({
   unavailableBody,
   ariaLabel,
   toCeremonyGoogleLabel,
-  toReceptionGoogleLabel,
   directionsMenuLabel,
 }: DetailsVenueLeafletProps) {
   const mapElRef = useRef<HTMLDivElement | null>(null);
@@ -153,7 +146,6 @@ export function DetailsVenueLeaflet({
   const oLat = guestPin?.lat;
   const oLng = guestPin?.lng;
   const gCer = buildGoogleDirectionsUrl(ceremonyLat, ceremonyLng, oLat, oLng);
-  const gRec = buildGoogleDirectionsUrl(receptionLat, receptionLng, oLat, oLng);
 
   useEffect(() => {
     const el = mapElRef.current;
@@ -181,13 +173,8 @@ export function DetailsVenueLeaflet({
     }
 
     L.marker([ceremonyLat, ceremonyLng], {
-      icon: venuePinIcon("ceremony", ceremonyTooltip),
+      icon: venuePinIcon(ceremonyTooltip),
       title: ceremonyTooltip,
-    }).addTo(map);
-
-    L.marker([receptionLat, receptionLng], {
-      icon: venuePinIcon("reception", receptionTooltip),
-      title: receptionTooltip,
     }).addTo(map);
 
     const onMapClick = (e: LeafletMouseEvent) => {
@@ -195,8 +182,7 @@ export function DetailsVenueLeaflet({
     };
     map.on("click", onMapClick);
 
-    const b0 = L.latLngBounds(L.latLng(ceremonyLat, ceremonyLng), L.latLng(receptionLat, receptionLng));
-    map.fitBounds(b0, { padding: [44, 44], maxZoom: 14 });
+    map.setView([ceremonyLat, ceremonyLng], VENUE_ZOOM);
 
     const t = window.setTimeout(() => map.invalidateSize(), 160);
 
@@ -207,17 +193,7 @@ export function DetailsVenueLeaflet({
       map.remove();
       mapRef.current = null;
     };
-  }, [
-    basemap,
-    mapTilerMapId,
-    mapTilerApiKey,
-    ceremonyLat,
-    ceremonyLng,
-    receptionLat,
-    receptionLng,
-    ceremonyTooltip,
-    receptionTooltip,
-  ]);
+  }, [basemap, mapTilerMapId, mapTilerApiKey, ceremonyLat, ceremonyLng, ceremonyTooltip]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -233,15 +209,15 @@ export function DetailsVenueLeaflet({
         .addTo(map)
         .bindTooltip(guestTooltip, { direction: "top", offset: [0, -8] });
       guestMarkerRef.current = m;
-      const b = L.latLngBounds(L.latLng(ceremonyLat, ceremonyLng), L.latLng(receptionLat, receptionLng)).extend(
+      const b = L.latLngBounds(
+        L.latLng(ceremonyLat, ceremonyLng),
         L.latLng(guestPin.lat, guestPin.lng)
       );
-      map.fitBounds(b, { padding: [52, 52], maxZoom: 14 });
+      map.fitBounds(b, { padding: [52, 52], maxZoom: VENUE_ZOOM });
     } else {
-      const b = L.latLngBounds(L.latLng(ceremonyLat, ceremonyLng), L.latLng(receptionLat, receptionLng));
-      map.fitBounds(b, { padding: [44, 44], maxZoom: 14 });
+      map.setView([ceremonyLat, ceremonyLng], VENUE_ZOOM);
     }
-  }, [guestPin, ceremonyLat, ceremonyLng, receptionLat, receptionLng, guestTooltip]);
+  }, [guestPin, ceremonyLat, ceremonyLng, guestTooltip]);
 
   return (
     <div className="details-venue-leaflet">
@@ -291,12 +267,6 @@ export function DetailsVenueLeaflet({
                 {toCeremonyGoogleLabel}
               </a>
             </div>
-            <div className="details-venue-leaflet__dir-block">
-              <div className="details-venue-leaflet__dir-label">{receptionTooltip}</div>
-              <a className="btn btn--ghost" href={gRec} target="_blank" rel="noopener noreferrer">
-                {toReceptionGoogleLabel}
-              </a>
-            </div>
           </div>
           <details className="details-venue-leaflet__directions details-venue-leaflet__directions--compact">
             <summary className="btn btn--ghost details-venue-leaflet__directions-summary">
@@ -309,9 +279,6 @@ export function DetailsVenueLeaflet({
             >
               <a className="btn btn--ghost" href={gCer} target="_blank" rel="noopener noreferrer">
                 {toCeremonyGoogleLabel}
-              </a>
-              <a className="btn btn--ghost" href={gRec} target="_blank" rel="noopener noreferrer">
-                {toReceptionGoogleLabel}
               </a>
             </div>
           </details>
