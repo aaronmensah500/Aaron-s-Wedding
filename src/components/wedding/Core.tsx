@@ -493,6 +493,8 @@ export function LoveStory() {
 // ============================================================
 export function Details() {
   const { content, patchContent } = useWeddingContent();
+  const editor = useSiteEditorOptional();
+  const isEditing = Boolean(editor?.isEditing);
   const d = content.details || {};
   const cer = d.ceremonyCard || {};
 
@@ -501,6 +503,10 @@ export function Details() {
   const patchItin = (i: number, partial: Record<string, string>) => {
     const updated = [...(d.itinerary || [])];
     updated[i] = { ...updated[i], ...partial };
+    patchContent({ details: { itinerary: updated } });
+  };
+  const removeItin = (i: number) => {
+    const updated = (d.itinerary || []).filter((_, idx) => idx !== i);
     patchContent({ details: { itinerary: updated } });
   };
   const itinerary = d.itinerary || [];
@@ -585,6 +591,17 @@ export function Details() {
               <div className="itin-row__attire">
                 <EditableText value={row.attire} onChange={v => patchItin(i, { attire: v })} />
               </div>
+              {isEditing ? (
+                <button
+                  type="button"
+                  className="itin-row__remove"
+                  onClick={() => removeItin(i)}
+                  aria-label={`Remove itinerary row: ${row.title || row.time || i + 1}`}
+                  title="Remove this row"
+                >
+                  ✕
+                </button>
+              ) : null}
             </div>
           ))}
         </div>
