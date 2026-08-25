@@ -555,9 +555,51 @@ body::before {
   text-align: center; font-family: var(--mono); font-size: 11px; letter-spacing: 0.32em;
   color: var(--champagne); margin-top: 12px;
 }
+/* Support us — footer call-to-action, present on every page */
+.footer__support {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 44px;
+}
+.footer__support-note {
+  margin: 0;
+  max-width: 420px;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(246, 242, 234, 0.62);
+  letter-spacing: 0.01em;
+}
+.footer__support-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 13px 34px;
+  border-radius: 999px;
+  border: 1px solid var(--champagne);
+  color: var(--champagne) !important;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.3s var(--ease-out), color 0.3s var(--ease-out);
+}
+.footer__support-btn:hover {
+  background: var(--champagne);
+  color: var(--soft-black) !important;
+}
+.footer__support-btn .arrow { transition: transform 0.3s var(--ease-out); }
+.footer__support-btn:hover .arrow { transform: translateX(4px); }
+
 .footer__row {
   display: flex; justify-content: space-between; align-items: center;
-  margin-top: 96px; padding-top: 32px; border-top: 1px solid rgba(246,242,234,0.12);
+  margin-top: 72px; padding-top: 32px; border-top: 1px solid rgba(246,242,234,0.12);
   font-family: var(--sans); font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
   color: rgba(246,242,234,0.55);
 }
@@ -800,6 +842,21 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
 .adm-btn--sm { padding: 6px 12px; font-size: 10px; }
 .adm-btn--ghost { background: transparent; color: var(--soft-black); border: 1px solid var(--hairline); }
 .adm-btn--danger { background: #6B0F18; }
+.adm-btn--danger-outline {
+  background: transparent;
+  color: #6B0F18;
+  border: 1px solid rgba(107, 15, 24, 0.4);
+}
+.adm-btn--danger-outline:hover:not(:disabled) { background: #6B0F18; color: var(--ivory); }
+.adm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+/* label left, action right (e.g. album meta + remove) */
+.adm-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
 /* Inline tap-to-edit (text fields only — photos keep normal layout) */
 [data-site-editing="true"] [data-editable]:not([data-editable="image"]) {

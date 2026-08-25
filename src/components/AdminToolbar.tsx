@@ -154,49 +154,67 @@ function AdminArraysPanel() {
           >
             Add album
           </button>
-          <button
-            type="button"
-            className="adm-btn adm-btn--sm adm-btn--ghost"
-            disabled={albums.length <= 1}
-            onClick={() => {
-              const nextAlbums = [...albums];
-              const removed = nextAlbums.pop();
-              const fallbackId = nextAlbums[0]?.id || "general";
-              const items = galleryItems.map((item: { albumId?: string }) => ({
-                ...item,
-                albumId: item.albumId === removed?.id ? fallbackId : item.albumId,
-              }));
-              patchContent({ gallery: { albums: nextAlbums, items } });
-            }}
-          >
-            Remove last album
-          </button>
         </div>
-        {albums.map((album: { id: string; title: string; description?: string }, ai: number) => (
-          <div key={album.id} className="adm-stack adm-stack--tight">
-            <AdminTextField
-              label={`Album ${ai + 1} title`}
-              value={album.title}
-              onChange={v => {
-                const next = [...albums];
-                next[ai] = { ...next[ai], title: v };
-                patchContent({ gallery: { albums: next } });
-              }}
-            />
-            <AdminTextField
-              label="Description"
-              value={album.description}
-              onChange={v => {
-                const next = [...albums];
-                next[ai] = { ...next[ai], description: v };
-                patchContent({ gallery: { albums: next } });
-              }}
-            />
-            <p className="adm-hint">
-              ID: <code className="adm-code">{album.id}</code>
-            </p>
-          </div>
-        ))}
+        {albums.map((album: { id: string; title: string; description?: string }, ai: number) => {
+          const photoCount = galleryItems.filter(
+            (item: { albumId?: string }) => item.albumId === album.id
+          ).length;
+          const fallback = albums.find((a: { id?: string }) => a.id !== album.id);
+          const removeAlbum = () => {
+            if (albums.length <= 1 || !fallback) return;
+            const msg = photoCount
+              ? `Remove “${album.title || album.id}”?\n\n${photoCount} photo${photoCount === 1 ? "" : "s"} will move to “${fallback.title || fallback.id}” (no photos are deleted).`
+              : `Remove “${album.title || album.id}”?`;
+            if (!window.confirm(msg)) return;
+            const nextAlbums = albums.filter((_: unknown, i: number) => i !== ai);
+            const items = galleryItems.map((item: { albumId?: string }) => ({
+              ...item,
+              albumId: item.albumId === album.id ? fallback.id : item.albumId,
+            }));
+            patchContent({ gallery: { albums: nextAlbums, items } });
+          };
+          return (
+            <div key={album.id} className="adm-stack adm-stack--tight">
+              <AdminTextField
+                label={`Album ${ai + 1} title`}
+                value={album.title}
+                onChange={v => {
+                  const next = [...albums];
+                  next[ai] = { ...next[ai], title: v };
+                  patchContent({ gallery: { albums: next } });
+                }}
+              />
+              <AdminTextField
+                label="Description"
+                value={album.description}
+                onChange={v => {
+                  const next = [...albums];
+                  next[ai] = { ...next[ai], description: v };
+                  patchContent({ gallery: { albums: next } });
+                }}
+              />
+              <div className="adm-row-between">
+                <p className="adm-hint">
+                  ID: <code className="adm-code">{album.id}</code> · {photoCount} photo
+                  {photoCount === 1 ? "" : "s"}
+                </p>
+                <button
+                  type="button"
+                  className="adm-btn adm-btn--sm adm-btn--danger-outline"
+                  disabled={albums.length <= 1}
+                  title={
+                    albums.length <= 1
+                      ? "Keep at least one album"
+                      : `Remove “${album.title || album.id}”`
+                  }
+                  onClick={removeAlbum}
+                >
+                  Remove album
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </fieldset>
       <fieldset className="adm-fieldset">
         <legend>Gallery photos</legend>

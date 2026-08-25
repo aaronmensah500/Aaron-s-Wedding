@@ -643,6 +643,10 @@ const WEDDING_CONTENT_DEFAULT = {
     signatureLine1: "Aaron",
     signatureLine2: "Princess",
     hash: "#AaronTakesPrincess · MMXXVI",
+    /** Footer call-to-action — appears on every page. Blank label hides it. */
+    supportLabel: "Support Us",
+    supportNote: "Your presence is the gift — but if you'd like to give, everything is here.",
+    supportHref: "/registry",
     copyrightLine: "© Aaron & Princess · Twelve · Twelve · Twenty Six",
     creditLine: "Designed with care\nin Accra",
     social: [

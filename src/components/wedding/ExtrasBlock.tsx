@@ -506,6 +506,8 @@ export function Footer() {
   const social = f.social || [];
   const socialHref = (name: string) =>
     social.find(s => s.label?.toLowerCase() === name?.toLowerCase())?.href || null;
+  const showSupport =
+    Boolean((f.supportLabel || "").trim()) && content.sections?.registry !== false;
   return (
     <footer className="footer">
       <div className="footer__glow" />
@@ -533,6 +535,33 @@ export function Footer() {
         <div className="footer__hash">
           <EditableText value={f.hash} onChange={v => patchContent({ footer: { hash: v } })} />
         </div>
+
+        {/* Support us — reachable from every page via the footer. Hidden when the
+            registry section is switched off, so it never links to an empty page. */}
+        {showSupport ? (
+          <div className="footer__support">
+            {f.supportNote ? (
+              <p className="footer__support-note">
+                <EditableText
+                  value={f.supportNote}
+                  onChange={v => patchContent({ footer: { supportNote: v } })}
+                  multiline
+                  as="span"
+                  plainText
+                />
+              </p>
+            ) : null}
+            <a className="footer__support-btn" href={f.supportHref || SITE_PATHS.registry}>
+              <EditableText
+                value={f.supportLabel}
+                onChange={v => patchContent({ footer: { supportLabel: v } })}
+                plainText
+              />
+              <span className="arrow" aria-hidden>→</span>
+            </a>
+          </div>
+        ) : null}
+
         <div className="footer__row">
           <div>
             <EditableText value={f.copyrightLine} onChange={v => patchContent({ footer: { copyrightLine: v } })} />
