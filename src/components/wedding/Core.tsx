@@ -114,7 +114,7 @@ export function Nav({ currentPage }: { currentPage: SitePageId }) {
   const brandLeft = (h.nameLine1 || "A").trim().charAt(0) || "A";
   const brandRight = (h.nameLine2 || "P").trim().charAt(0) || "P";
   const onHome = currentPage === "home";
-  const links = buildNavLinks(sec, content.travelLogistics?.navLabel, onHome);
+  const links = buildNavLinks(sec, content.travelLogistics?.navLabel, onHome, content.program?.navLabel);
   const navMono = navMonoId(content.site?.weddingDateIso, content.nav?.monoId);
 
   useEffect(() => {

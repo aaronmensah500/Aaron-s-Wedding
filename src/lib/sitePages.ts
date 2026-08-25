@@ -3,6 +3,7 @@ export const SITE_PATHS = {
   home: "/",
   story: "/story",
   wedding: "/wedding",
+  program: "/program",
   travel: "/travel",
   rsvp: "/rsvp",
   gallery: "/gallery",
@@ -21,6 +22,7 @@ export const PAGE_TITLES: Record<SitePageId, string> = {
   home: "Aaron & Princess · 29.08.2026",
   story: "Our story · Aaron & Princess",
   wedding: "Wedding details · Aaron & Princess",
+  program: "Program outline · Aaron & Princess",
   travel: "Travel & stay · Aaron & Princess",
   rsvp: "RSVP · Aaron & Princess",
   gallery: "Gallery · Aaron & Princess",
@@ -41,6 +43,7 @@ export type SectionToggleKey =
   | "invitation"
   | "music"
   | "colours"
+  | "program"
   | "footer";
 
 /** Section toggles (`content.sections`) that appear on each public page. */
@@ -48,6 +51,7 @@ export const PAGE_SECTION_KEYS: Record<SitePageId, SectionToggleKey[]> = {
   home: ["hero", "story", "music", "details", "colours", "rsvp", "registry", "footer"],
   story: ["story", "footer"],
   wedding: ["details", "party", "footer"],
+  program: ["program", "footer"],
   travel: ["travel", "footer"],
   rsvp: ["rsvp", "footer"],
   gallery: ["gallery", "footer"],
@@ -68,6 +72,7 @@ export const SECTION_TOGGLE_LABELS: Record<SectionToggleKey, string> = {
   invitation: "Guest experience (invitation cards)",
   music: "Our songs",
   colours: "Wedding colours",
+  program: "Program outline",
   footer: "Footer",
 };
 
@@ -76,6 +81,7 @@ export const PAGE_EDITOR_LABELS: Record<SitePageId, string> = {
   home: "Home",
   story: "Story",
   wedding: "Wedding",
+  program: "Program",
   travel: "Travel",
   rsvp: "RSVP",
   gallery: "Gallery",
@@ -93,6 +99,7 @@ export const EDITOR_TABS: { id: string; label: string; page?: SitePageId }[] = [
   { id: "hero", label: "Hero", page: "home" },
   { id: "story", label: "Story", page: "story" },
   { id: "details", label: "Details", page: "wedding" },
+  { id: "program", label: "Program", page: "program" },
   { id: "travel", label: "Travel", page: "travel" },
   { id: "rsvp", label: "RSVP", page: "rsvp" },
   { id: "party", label: "Party", page: "wedding" },
@@ -112,13 +119,21 @@ export function editorTabLabel(tab: { label: string; page?: SitePageId }): strin
 export function buildNavLinks(
   sec: Record<string, boolean | undefined>,
   travelNavLabel?: string,
-  onHome = false
+  onHome = false,
+  programNavLabel?: string
 ): NavLink[] {
   const links: NavLink[] = [];
   // Story & Gifts live only on home — anchor on home, deep-link from other pages
   if (sec.story !== false) links.push({ href: onHome ? "#story" : "/#story", label: "Story", page: "story" });
   if (sec.details !== false || sec.party !== false) {
     links.push({ href: SITE_PATHS.wedding, label: "Wedding", page: "wedding" });
+  }
+  if (sec.program !== false) {
+    links.push({
+      href: SITE_PATHS.program,
+      label: (programNavLabel || "Program").trim() || "Program",
+      page: "program",
+    });
   }
   if (sec.travel !== false) {
     links.push({

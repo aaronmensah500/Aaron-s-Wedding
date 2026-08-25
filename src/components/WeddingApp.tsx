@@ -17,6 +17,7 @@ import { Registry, Footer } from "./wedding/ExtrasBlock";
 import { MusicPlayer } from "./wedding/MusicPlayer";
 import { MusicSection } from "./wedding/MusicSection";
 import { WeddingColours } from "./wedding/WeddingColours";
+import { ProgramOutline } from "./wedding/ProgramOutline";
 
 const ClientAdmin = lazy(() => import("./AdminPanel").then((m) => ({ default: m.ClientAdmin })));
 const GuestPage = lazy(() => import("./GuestPage"));
@@ -150,6 +151,7 @@ function App({ page }: AppProps) {
       {page === "story" && sec.story !== false && <LoveStory />}
       {page === "wedding" && sec.details !== false && <Details />}
       {page === "wedding" && sec.party !== false && <BridalParty />}
+      {page === "program" && sec.program !== false && <ProgramOutline />}
       {page === "travel" && sec.travel !== false && <TravelLogistics />}
       {page === "rsvp" && sec.rsvp !== false && <RSVP initialStep={tweaks.rsvpStep} />}
       {page === "gallery" && sec.gallery !== false && <Gallery />}

@@ -71,6 +71,269 @@
 .details__card .meta div span { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .details__card .meta div strong { font-family: var(--serif); font-weight: 400; font-size: 18px; }
 
+/* ===== Program outline (order of service) ===== */
+/* Flat flyer — no cards, borders or shadows; sections are separated by space
+   and a single hairline rule, the way a printed programme reads. */
+.program { position: relative; overflow: hidden; }
+.program > *:not(.floral) { position: relative; z-index: 1; }
+
+.prog-card {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 52px 0 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.prog-card + .prog-card { border-top: 1px solid var(--hairline); }
+.prog-card__title {
+  font-family: var(--serif);
+  font-size: clamp(24px, 3.4vw, 32px);
+  font-weight: 300;
+  text-align: center;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+.prog-card__lede {
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 22px;
+}
+.prog-card__title + .prog-service,
+.prog-card__title + .prog-names,
+.prog-card__title + .prog-photo { margin-top: 26px; }
+
+/* Booklet header */
+.prog-card--head { text-align: center; }
+.prog-head__rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hairline-gold), transparent);
+  margin: 4px 0 22px;
+}
+.prog-head__title {
+  font-family: var(--serif);
+  font-size: clamp(22px, 3.6vw, 30px);
+  font-weight: 300;
+  margin: 0;
+  line-height: 1.25;
+}
+.prog-head__between {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--champagne);
+  margin: 16px 0 10px;
+}
+.prog-head__names {
+  font-family: var(--serif);
+  font-size: clamp(21px, 3.4vw, 29px);
+  font-weight: 400;
+  line-height: 1.35;
+  margin: 0 0 22px;
+}
+.prog-head__facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 40px;
+  margin: 24px 0 0;
+}
+.prog-head__facts > div { display: flex; flex-direction: column; gap: 5px; }
+.prog-head__facts dt {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.prog-head__facts dd { margin: 0; font-family: var(--serif); font-size: 17px; font-weight: 400; }
+
+.prog-leads {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 36px;
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--hairline);
+}
+.prog-lead { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.prog-lead__role {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--champagne);
+}
+.prog-lead__name { font-family: var(--serif); font-size: 17px; }
+
+/* Order of service — numbered with dot leaders */
+.prog-service { list-style: none; margin: 0; padding: 0; }
+.prog-service__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px auto 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.prog-service__row:last-child { border-bottom: 0; }
+.prog-service__num {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--champagne);
+}
+.prog-service__item { font-family: var(--serif); font-size: 18px; font-weight: 400; }
+.prog-service__dots {
+  border-bottom: 1px dotted var(--hairline);
+  transform: translateY(-4px);
+  min-width: 16px;
+}
+.prog-service__by {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* Minister name lists */
+.prog-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 56px;
+  max-width: 720px;
+  margin: 0 auto;
+  border-top: 1px solid var(--hairline);
+}
+.prog-grid .prog-card { max-width: none; margin: 0; border-top: 0; }
+.prog-names { list-style: none; margin: 0; padding: 0; text-align: center; }
+.prog-names__row {
+  position: relative;
+  font-family: var(--serif);
+  font-size: 17px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.prog-names__row:last-child { border-bottom: 0; }
+
+/* Order of photography */
+.prog-photo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 28px;
+}
+.prog-photo__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.prog-photo__num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--champagne);
+}
+.prog-photo__name { font-family: var(--sans); font-size: 13px; line-height: 1.45; }
+
+/* ---- Floral corner sprays ---- */
+.floral {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  /* clears the fixed nav so the top sprays are never cut off */
+  --floral-nav-offset: 92px;
+}
+/* The PNG supplies the SHAPE (alpha mask); the palette supplies the COLOUR,
+   so the same artwork can be champagne, burgundy — anything. */
+.floral__corner {
+  position: absolute;
+  width: clamp(130px, 19vw, 260px);
+  aspect-ratio: 681 / 800;
+  line-height: 0;
+  background-color: var(--champagne-2);
+  opacity: 0.7;
+  -webkit-mask-image: url("/floral-corner.png");
+          mask-image: url("/floral-corner.png");
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  -webkit-mask-size: contain;
+          mask-size: contain;
+}
+.floral__corner--tl { top: var(--floral-nav-offset); left: 0; }
+.floral__corner--tr { top: var(--floral-nav-offset); right: 0; transform: scaleX(-1); }
+.floral__corner--bl { bottom: 0; left: 0; transform: scaleY(-1); }
+.floral__corner--br { bottom: 0; right: 0; transform: scale(-1, -1); }
+
+@media (max-width: 700px) {
+  /* keep the corners as a light accent so they never crowd the text */
+  .floral__corner { width: 108px; }
+  .floral__corner--bl, .floral__corner--br { display: none; }
+}
+
+/* Editor-only controls */
+.prog__remove {
+  position: absolute;
+  top: 6px;
+  right: -4px;
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--hairline);
+  background: var(--warm-white);
+  color: var(--burgundy);
+  font-size: 10px; line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  z-index: 2;
+  transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.prog__remove:hover { opacity: 1; background: var(--burgundy); color: var(--ivory); }
+.prog__add {
+  display: block;
+  margin: 18px auto 0;
+  padding: 8px 18px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--charcoal);
+  background: transparent;
+  border: 1px dashed var(--hairline-gold);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.prog__add:hover { background: rgba(217, 178, 107, 0.12); }
+
+@media (max-width: 760px) {
+  .prog-grid { grid-template-columns: 1fr; gap: 20px; }
+  .prog-photo { grid-template-columns: 1fr; gap: 0; }
+  .prog-service__row { grid-template-columns: 26px 1fr; row-gap: 2px; }
+  .prog-service__dots { display: none; }
+  .prog-service__by { grid-column: 2; text-align: left; }
+}
+
+/* Print — guests may want a paper copy of the order of service */
+@media print {
+  .prog-card { page-break-inside: avoid; }
+  .prog__remove, .prog__add { display: none !important; }
+}
+
 /* ===== Wedding colours band ===== */
 .colours__row {
   display: flex;

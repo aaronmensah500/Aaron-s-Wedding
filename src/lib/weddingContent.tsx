@@ -164,6 +164,97 @@ const WEDDING_CONTENT_DEFAULT = {
       { name: "Champagne", hex: "#D9B26B" }
     ]
   },
+  program: {
+    navLabel: "Program",
+    eyebrowLabel: "The programme",
+    titleLine1: "Order of ",
+    titleEm: "service",
+    titleLine2: "",
+    lede: "The order of the day, our officiating ministers, and the photography line-up after the ceremony.",
+    /** Booklet header block. */
+    heading: "The Celebration of Holy Matrimony",
+    betweenLabel: "Between",
+    coupleNames: "Aaron Kwame Mensah & Princess Tari M. Lamptey-Puddicombe",
+    dateLabel: "Date",
+    dateValue: "Saturday 29th August, 2026",
+    timeLabel: "Time",
+    timeValue: "11:30am – 1:30pm",
+    venueLabel: "Venue",
+    venueValue: "Agape House New Testament Church",
+    /** Lead roles shown under the header. */
+    leads: [
+      { role: "Officiating Minister", name: "Reverend Prince Mensah" },
+      { role: "Sermon", name: "Reverend Divine Gbagbo" },
+      { role: "Counsellor", name: "Elikplim Akosua Boni" }
+    ],
+    serviceTitle: "Order of Service",
+    /** `by` is optional — leave blank for items with no named leader. */
+    service: [
+      { item: "Arrival of Guests", by: "" },
+      { item: "Arrival of Groom & Groomsmen", by: "" },
+      { item: "Bride Pre-entrance", by: "Piano version of Testimony — CeCe Winans" },
+      { item: "Bridal Processional Song", by: "Testimony — CeCe Winans" },
+      { item: "Opening Prayer", by: "Ps. Prince Henry" },
+      { item: "Declaration of Purpose", by: "Ps. Prince Henry" },
+      { item: "Legal Declaration", by: "Rev. Prince Mensah" },
+      { item: "Exchange of Vows & Rings", by: "Rev. Prince Mensah" },
+      { item: "Piano — See How Far / Gratitude (Reflections)", by: "Victoria Orenze, Nathaniel Bassey & Dunsin Oyekan" },
+      { item: "Pronouncement of Marriage", by: "Rev. Prince Mensah" },
+      { item: "Blessing of Couple", by: "All Ministers Present" },
+      { item: "Song Ministration", by: "Worship" },
+      { item: "Holy Communion (for the Couple)", by: "Rev. Prince Mensah" },
+      { item: "1st Bible Reading", by: "Ps. Harriet Osei" }
+    ],
+    ministersTitle: "Officiating Ministers",
+    ministers: [
+      "Rev. Prince Mensah",
+      "Rev. Dr. Delali Bodza",
+      "Rev. Divine Gbagbo"
+    ],
+    supportTitle: "Supported by",
+    support: [
+      "Rev. Adelaide Mensah",
+      "Lady Rev. Gladys Bodza",
+      "Rev. Cromwell",
+      "Rev. Prince Ahinakwah-Wilson",
+      "Rev. Roger Acquah",
+      "Rev. Samuel Oteng Ntow",
+      "Pastor Ebenezer Cobbinah",
+      "Pastor Harriet Osei",
+      "Evangelist Ernest Amewogah"
+    ],
+    photoTitle: "Order of Photography",
+    photoLede: "Please listen for your group — the photographer will call each in turn.",
+    /** Numbering is generated from this order, so rows stay in sequence when edited. */
+    photography: [
+      "Officiating Ministers",
+      "Pastors & Wives",
+      "All Counsellors",
+      "Military High Command and Guests",
+      "Parents of Groom",
+      "Family of Groom",
+      "Parents of Bride",
+      "Family of Bride",
+      "Both Families",
+      "Members of DAGC and DAG Youth",
+      "Members of Agape House",
+      "Heaven Ambassadors Ministry Church",
+      "Lifeway Gospel Church International",
+      "Sysmex West and Central Africa Staff",
+      "Ridge Hospital Staff",
+      "Fastest Cakes",
+      "Step Up Business School",
+      "Alumni of Biomedical Engineering — UG",
+      "Alumni of Medical School, UG",
+      "AGCM UG",
+      "AGCM Korle Bu",
+      "APSU HOPSA",
+      "Nananom",
+      "SAJOSA",
+      "Seven Great Princes Academy",
+      "All Friends"
+    ]
+  },
   sections: {
     hero: true,
     story: true,
@@ -177,6 +268,7 @@ const WEDDING_CONTENT_DEFAULT = {
     invitation: true,
     music: true,
     colours: true,
+    program: true,
     footer: true
   },
   nav: {
