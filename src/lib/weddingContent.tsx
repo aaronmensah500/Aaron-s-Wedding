@@ -203,7 +203,18 @@ const WEDDING_CONTENT_DEFAULT = {
       { item: "Blessing of Couple", by: "All Ministers Present" },
       { item: "Song Ministration", by: "Worship" },
       { item: "Holy Communion (for the Couple)", by: "Rev. Prince Mensah" },
-      { item: "1st Bible Reading", by: "Ps. Harriet Osei" }
+      { item: "1st Bible Reading", by: "Ps. Harriet Osei" },
+      { item: "2nd Bible Reading", by: "Brother Ernest Amewugah" },
+      { item: "Song Ministration", by: "Praise & Worship — Destiny Melodians (DAGC)" },
+      { item: "Sermon", by: "Rev. Divine Gbagbo" },
+      { item: "Musical Interlude", by: "Adonai — Nathaniel Bassey" },
+      { item: "Signing of Marriage Register / Offering / Song Ministration", by: "Rev. Prince Mensah & Heart Song" },
+      { item: "Introduction of the Couple", by: "Rev. Prince Mensah" },
+      { item: "Presentation of Marriage Certificate", by: "Rev. Prince Mensah" },
+      { item: "Playing of Song", by: "Forever Yours — Kaestrings & Ene John" },
+      { item: "Closing Prayer & Benediction", by: "Mrs. Elikplim Akosua Boni" },
+      { item: "Recessional Song", by: "Eze Ebube II — Neon Adejo" },
+      { item: "Photography", by: "" }
     ],
     ministersTitle: "Officiating Ministers",
     ministers: [
