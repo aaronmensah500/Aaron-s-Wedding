@@ -228,6 +228,19 @@ export function ProgramOutline() {
           </button>
         ) : null}
       </div>
+
+      {/* Closing sign-off */}
+      {(p.closingNote || "").trim() || isEditing ? (
+        <p className="prog-closing reveal">
+          <EditableText
+            value={p.closingNote}
+            onChange={v => patch({ closingNote: v })}
+            multiline
+            as="span"
+            plainText
+          />
+        </p>
+      ) : null}
     </section>
   );
 }

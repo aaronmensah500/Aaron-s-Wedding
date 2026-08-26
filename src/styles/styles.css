@@ -612,6 +612,38 @@ body::before {
   .footer__row { flex-direction: column; gap: 24px; text-align: center; }
 }
 
+/* ===== A&P monogram =====
+   The logo file supplies the shape (alpha mask); `currentColor` supplies the
+   colour, so the mark inherits whatever text colour surrounds it. */
+.ap-logo {
+  display: inline-block;
+  vertical-align: middle;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  -webkit-mask-size: contain;
+          mask-size: contain;
+}
+.ap-logo--mark {
+  height: 40px;
+  aspect-ratio: 803 / 933;
+  -webkit-mask-image: url("/ap-mark.png");
+          mask-image: url("/ap-mark.png");
+}
+.ap-logo--full {
+  height: 120px;
+  aspect-ratio: 803 / 933;
+  -webkit-mask-image: url("/ap-logo.png");
+          mask-image: url("/ap-logo.png");
+}
+/* Nav brand mark — champagne, matching the old lettering's colour */
+.nav__monogram { height: 38px; color: var(--champagne); }
+@media (max-width: 700px) { .nav__monogram { height: 32px; } }
+/* Invitation / QR cards */
+.invite-card__monogram { height: 30px; }
+
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1314,6 +1346,8 @@ textarea.adm-field__input { resize: vertical; min-height: 60px; }
   z-index: 1;
 }
 .music-stage__disc-label i { font-family: var(--script); font-style: normal; font-size: 13px; }
+/* Monogram sits on the champagne label, so it takes the dark ink colour */
+.music-stage__disc-monogram { height: 30px; color: var(--soft-black); }
 /* centre spindle hole */
 .music-stage__disc-hole {
   position: absolute;

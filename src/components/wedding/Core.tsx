@@ -9,6 +9,7 @@ import { downloadWeddingIcs } from "../../lib/calendar";
 import { heroDateDisplay, navMonoId } from "../../lib/weddingDateFormats";
 import { buildNavLinks, SITE_PATHS, type SitePageId } from "../../lib/sitePages";
 import { VenueDirectionsMap } from "./VenueDirectionsMap";
+import { Monogram } from "./Monogram";
 
 // ============================================================
 // Hooks & helpers
@@ -133,7 +134,7 @@ export function Nav({ currentPage }: { currentPage: SitePageId }) {
   return (
     <nav className={`nav ${scrolled || !onHome ? "nav--solid" : ""}${menuOpen ? " nav--menu-open" : ""}`}>
       <a href={SITE_PATHS.home} className="nav__brand">
-        <span className="serif" style={{ fontSize: 22 }}>{brandLeft}<span style={{ fontFamily: "var(--script)", color: "var(--champagne)", margin: "0 4px" }}>&amp;</span>{brandRight}</span>
+        <Monogram variant="mark" className="nav__monogram" title={`${brandLeft} & ${brandRight}`} />
         <span className="mono-id">{navMono}</span>
       </a>
       <button

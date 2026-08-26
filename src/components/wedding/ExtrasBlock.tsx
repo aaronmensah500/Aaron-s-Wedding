@@ -9,6 +9,7 @@ import { WEDDING_SLUG } from "../../lib/weddingConstants";
 import { openPaystackInline, type PaystackCurrency } from "../../lib/paystack";
 import { EditableText } from "../editable/EditableText";
 import { SectionHead } from "../editable/SectionTitle";
+import { Monogram } from "./Monogram";
 
 const PAYSTACK_CURRENCIES = new Set<string>(["GHS", "NGN", "USD", "ZAR", "KES", "XOF", "XAF"]);
 const REGISTRY_PRESET_EXCLUDE = new Set([2500, 5000]);
@@ -207,7 +208,7 @@ export function Registry({ compact = false }: RegistryProps) {
                 <div className="payment-card">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div className="chip" />
-                    <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> P</div>
+                    <Monogram variant="mark" className="invite-card__monogram" />
                   </div>
                   <div>
                     <div className="num">Paystack · {currency}</div>
@@ -295,7 +296,7 @@ export function Registry({ compact = false }: RegistryProps) {
                         <div className="mono" style={{ fontSize: 10, letterSpacing: "0.28em", textTransform: "uppercase", opacity: 0.55 }}>
                           <EditableText value={reg.bankLabel} onChange={v => patchContent({ registry: { bankLabel: v } })} />
                         </div>
-                        <div className="mono" style={{ letterSpacing: "0.32em", fontSize: 10 }}>A <span style={{ fontFamily: "var(--script)", color: "var(--champagne)", fontSize: 18 }}>&amp;</span> P</div>
+                        <Monogram variant="mark" className="invite-card__monogram" />
                       </div>
                       <div>
                         <div className="num">

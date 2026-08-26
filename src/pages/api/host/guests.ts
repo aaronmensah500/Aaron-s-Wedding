@@ -20,7 +20,8 @@ export const GET: APIRoute = async ({ request }) => {
     return jsonError("server_misconfigured", 503, apiErrorMessage("server_misconfigured"));
   }
 
-  const baseCols = "id,email,full_name,attendance,events,guests,diet,song,note,status,created_at,updated_at,login_token_hash";
+  const baseCols =
+    "id,email,full_name,attendance,events,guests,diet,song,note,status,created_at,updated_at,login_token_hash";
   const selectGuests = (cols: string) =>
     service
       .from("rsvps")
@@ -28,13 +29,21 @@ export const GET: APIRoute = async ({ request }) => {
       .eq("wedding_slug", WEDDING_SLUG)
       .order("updated_at", { ascending: false });
 
-  let { data, error } = await selectGuests(`${baseCols},party_names`);
-  // party_names is a newer column — fall back gracefully if the migration is pending.
+  // party_names and program_sent_at are newer columns — degrade one at a time so
+  // the panel keeps working when a migration is still pending.
+  const attempts = [
+    `${baseCols},party_names,program_sent_at`,
+    `${baseCols},party_names`,
+    baseCols,
+  ];
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  for (const cols of attempts) {
+    ({ data, error } = (await selectGuests(cols)) as { data: unknown; error: { message: string } | null });
+    if (!error) break;
+  }
   if (error) {
-    ({ data, error } = await selectGuests(baseCols));
-    if (error) {
-      return jsonError("save_failed", 500, apiErrorMessage("save_failed"));
-    }
+    return jsonError("save_failed", 500, apiErrorMessage("save_failed"));
   }
 
   const rows = (data ?? []) as unknown as Array<Record<string, unknown> & { login_token_hash?: string | null }>;

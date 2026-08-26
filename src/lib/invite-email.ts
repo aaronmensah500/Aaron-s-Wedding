@@ -86,8 +86,11 @@ function inviteHtml(name: string, siteUrl: string, guests: number): string {
       </td></tr>
 
       <!-- CTA -->
-      <tr><td align="center" style="padding:36px 40px;">
+      <tr><td align="center" style="padding:36px 40px 12px;">
         <a href="${siteUrl}" style="display:inline-block;padding:14px 36px;background:#2A0A0E;color:#F6ECD8;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.28em;text-transform:uppercase;text-decoration:none;">View full details →</a>
+      </td></tr>
+      <tr><td align="center" style="padding:0 40px 36px;">
+        <a href="${siteUrl}/program" style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.24em;text-transform:uppercase;color:#6B0F18;">View the order of service →</a>
       </td></tr>
 
       <!-- Footer -->
@@ -146,6 +149,7 @@ function inviteText(name: string, siteUrl: string, guests: number): string {
     `Wedding colours: Burgundy, Ivory & Champagne`,
     ``,
     `Full details: ${siteUrl}`,
+    `Order of service: ${siteUrl}/program`,
     ``,
     `With love,`,
     `Aaron & Princess · 29 · 08 · 2026 · Accra`,

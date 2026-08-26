@@ -264,7 +264,9 @@ const WEDDING_CONTENT_DEFAULT = {
       "SAJOSA",
       "Seven Great Princes Academy",
       "All Friends"
-    ]
+    ],
+    /** Short sign-off at the foot of the programme. Blank hides it. */
+    closingNote: "After the photography, please grab your little bites. Thank you for celebrating with us."
   },
   sections: {
     hero: true,

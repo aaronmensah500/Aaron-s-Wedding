@@ -12,6 +12,7 @@ type HostGuestRow = {
   party_names?: string[];
   status: string;
   updated_at: string;
+  program_sent_at?: string | null;
 };
 
 type GuestHostPanelProps = {
@@ -25,6 +26,9 @@ export function GuestHostPanel({ session }: GuestHostPanelProps) {
   const [msg, setMsg] = useState("");
   const [busyId, setBusyId] = useState("");
   const [filter, setFilter] = useState("pending" as "pending" | "all");
+  const [progBusy, setProgBusy] = useState(false);
+  const [progMsg, setProgMsg] = useState("");
+  const [progErr, setProgErr] = useState("");
 
   const authHeader = `Bearer ${session.access_token}`;
 
@@ -84,6 +88,69 @@ export function GuestHostPanel({ session }: GuestHostPanelProps) {
   const pending = guests.filter(g => g.status === "pending");
   const shown = filter === "pending" ? pending : guests;
 
+  // ---- Programme broadcast ----
+  const approved = guests.filter(g => g.status === "approved");
+  const notSent = approved.filter(g => !g.program_sent_at);
+
+  const sendProgram = async (opts: { test?: boolean } = {}) => {
+    setProgErr("");
+    setProgMsg("");
+    setProgBusy(true);
+    try {
+      if (opts.test) {
+        const to = (session.user.email || "").trim();
+        const res = await fetch("/api/host/program/send", {
+          method: "POST",
+          headers: { Authorization: authHeader, "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "test", testEmail: to }),
+        });
+        const j = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        if (!res.ok) {
+          setProgErr(String((j.error as { message?: string })?.message || "Test send failed."));
+          return;
+        }
+        setProgMsg(`Test sent to ${to}. Check it looks right before sending to guests.`);
+        return;
+      }
+
+      if (!notSent.length) {
+        setProgMsg("Everyone approved has already received the programme.");
+        return;
+      }
+      if (
+        !window.confirm(
+          `Send the programme to ${notSent.length} approved guest${notSent.length === 1 ? "" : "s"}?\n\nThis emails real guests and cannot be undone.`
+        )
+      ) {
+        return;
+      }
+
+      // The endpoint handles one batch per call; loop until nothing remains.
+      let sent = 0;
+      for (let i = 0; i < 50; i += 1) {
+        const res = await fetch("/api/host/program/send", {
+          method: "POST",
+          headers: { Authorization: authHeader, "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "send" }),
+        });
+        const j = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        if (!res.ok) {
+          setProgErr(String((j.error as { message?: string })?.message || "Send failed."));
+          break;
+        }
+        sent += Number(j.sent || 0);
+        setProgMsg(`Sending… ${sent} sent, ${Number(j.remaining || 0)} to go.`);
+        if (j.done || Number(j.remaining || 0) === 0) {
+          setProgMsg(`Programme sent to ${sent} guest${sent === 1 ? "" : "s"}.`);
+          break;
+        }
+      }
+      await load();
+    } finally {
+      setProgBusy(false);
+    }
+  };
+
   return (
     <div className="guest-host">
       <div className="guest-portal__panel guest-host__intro">
@@ -93,6 +160,43 @@ export function GuestHostPanel({ session }: GuestHostPanelProps) {
           Approve RSVPs so guests can sign in with their email and a 6-digit code from Supabase. You can edit the site
           from any page once signed in here.
         </p>
+      </div>
+
+      <div className="guest-portal__panel guest-host__program">
+        <div className="eyebrow">Programme</div>
+        <h3 className="guest-portal__panel-title">Send the order of service</h3>
+        <p className="guest-portal__hint">
+          Emails the <strong>published</strong> programme to approved guests — publish your latest
+          edits first. Approved: {approved.length} · Not yet sent: {notSent.length}
+        </p>
+        <div className="guest-host__actions">
+          <button
+            type="button"
+            className="btn btn--ghost"
+            disabled={progBusy}
+            onClick={() => void sendProgram({ test: true })}
+          >
+            {progBusy ? "Working…" : "Send test to myself"}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={progBusy || notSent.length === 0}
+            onClick={() => void sendProgram()}
+          >
+            {notSent.length ? `Send to ${notSent.length} guest${notSent.length === 1 ? "" : "s"}` : "All sent"}
+          </button>
+        </div>
+        {progMsg ? (
+          <p className="guest-portal__msg" role="status">
+            {progMsg}
+          </p>
+        ) : null}
+        {progErr ? (
+          <p className="guest-portal__err" role="alert">
+            {progErr}
+          </p>
+        ) : null}
       </div>
 
       <div className="guest-host__tabs" role="tablist">
@@ -153,6 +257,11 @@ export function GuestHostPanel({ session }: GuestHostPanelProps) {
                 <span className={`guest-host__status guest-host__status--${row.status}`}>
                   {row.status}
                 </span>
+                {row.program_sent_at ? (
+                  <span className="guest-host__sent" title={`Programme sent ${row.program_sent_at}`}>
+                    {" "}· programme sent
+                  </span>
+                ) : null}
               </span>
               {Array.isArray(row.party_names) && row.party_names.length > 0 ? (
                 <span className="guest-host__party">

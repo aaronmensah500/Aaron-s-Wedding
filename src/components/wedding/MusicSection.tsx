@@ -3,6 +3,7 @@ import { useWeddingContent } from "../../lib/weddingContent";
 import { useSiteEditorOptional } from "../../lib/siteEditor";
 import { announceMusicPlay, onOtherMusicPlay } from "../../lib/musicBus";
 import { SectionHead } from "../editable/SectionTitle";
+import { Monogram } from "./Monogram";
 
 const SECTION_ID = "music-section";
 const BAR_COUNT = 56; // CSS fallback bars
@@ -295,9 +296,7 @@ export function MusicSection() {
             {/* Spinning vinyl record — turns while a song plays */}
             <div className="music-stage__disc" aria-hidden>
               <div className="music-stage__disc-label">
-                <span>A</span>
-                <i>&amp;</i>
-                <span>P</span>
+                <Monogram variant="mark" className="music-stage__disc-monogram" />
               </div>
               <span className="music-stage__disc-hole" />
             </div>
