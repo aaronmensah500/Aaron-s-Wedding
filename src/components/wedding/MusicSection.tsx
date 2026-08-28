@@ -4,9 +4,9 @@ import { useSiteEditorOptional } from "../../lib/siteEditor";
 import { announceMusicPlay, onOtherMusicPlay } from "../../lib/musicBus";
 import { SectionHead } from "../editable/SectionTitle";
 import { Monogram } from "./Monogram";
+import { IMAGE_UPLOAD_ACCEPT, useAdminImageUpload } from "../../lib/useAdminImageUpload";
 
 const SECTION_ID = "music-section";
-const BAR_COUNT = 56; // CSS fallback bars
 
 type Track = { url?: string; title?: string; artist?: string };
 
@@ -26,18 +26,14 @@ export function MusicSection() {
   const allTracks: Track[] = Array.isArray(music.tracks) ? music.tracks : [];
   const playable = allTracks.filter(t => (t.url || "").trim());
 
+  const bgUpload = useAdminImageUpload(url => patchContent({ music: { bgImageUrl: url } }));
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const ctxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const rafRef = useRef<number | null>(null);
 
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
-  const [reactive, setReactive] = useState(true); // false → CSS fallback bars
 
   const safeIndex = Math.min(index, Math.max(0, playable.length - 1));
   const track = playable[safeIndex] || null;
@@ -48,156 +44,17 @@ export function MusicSection() {
     [patchContent]
   );
 
-  const stopDraw = useCallback(() => {
-    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    rafRef.current = null;
-  }, []);
-
-  // Calm, gently breathing baseline shown while paused so the area is never empty.
-  const drawIdle = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx2d = canvas.getContext("2d");
-    if (!ctx2d) return;
-    const w = canvas.width;
-    const h = canvas.height;
-    const mid = h / 2;
-    const bars = 48;
-    const gap = 3;
-    const barW = (w - gap * (bars - 1)) / bars;
-    let t0 = 0;
-
-    const render = (ts: number) => {
-      if (!t0) t0 = ts;
-      const t = (ts - t0) / 1000;
-      ctx2d.clearRect(0, 0, w, h);
-      for (let i = 0; i < bars; i++) {
-        // slow travelling sine → a quiet shimmer
-        const wave = Math.sin(i * 0.5 - t * 2.2) * 0.5 + 0.5;
-        const env = Math.sin((i / (bars - 1)) * Math.PI); // taller in the middle
-        const barH = Math.max(3, (4 + wave * env * 16));
-        const x = i * (barW + gap);
-        const y = mid - barH / 2;
-        ctx2d.fillStyle = "rgba(217,178,107,0.55)";
-        const r = Math.min(barW / 2, 4);
-        ctx2d.beginPath();
-        ctx2d.roundRect(x, y, barW, barH, r);
-        ctx2d.fill();
-      }
-      rafRef.current = requestAnimationFrame(render);
-    };
-    rafRef.current = requestAnimationFrame(render);
-  }, []);
-
-  // Reactive, mirrored spectrum painted from real audio data.
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    const analyser = analyserRef.current;
-    if (!canvas || !analyser) return;
-    const ctx2d = canvas.getContext("2d");
-    if (!ctx2d) return;
-
-    const bins = analyser.frequencyBinCount;
-    const data = new Uint8Array(bins);
-    // Smoothed bar heights for buttery motion between frames.
-    const bars = 48;
-    const smoothed = new Array(bars).fill(0);
-    let warmFrames = 0;
-
-    const render = () => {
-      analyser.getByteFrequencyData(data);
-      const w = canvas.width;
-      const h = canvas.height;
-      const mid = h / 2;
-      ctx2d.clearRect(0, 0, w, h);
-
-      // Use the lower ~70% of the spectrum (music energy sits there).
-      const usable = Math.floor(bins * 0.7);
-      const step = Math.max(1, Math.floor(usable / bars));
-      const gap = 3;
-      const barW = (w - gap * (bars - 1)) / bars;
-      let sum = 0;
-
-      for (let i = 0; i < bars; i++) {
-        let v = 0;
-        for (let j = 0; j < step; j++) v += data[i * step + j] || 0;
-        v = v / step / 255; // 0..1
-        // gentle perceptual curve so quiet passages still show motion
-        v = Math.pow(v, 0.78);
-        sum += v;
-        // smoothing: rise fast, fall slow
-        smoothed[i] = v > smoothed[i] ? v : smoothed[i] * 0.82 + v * 0.18;
-
-        const barH = Math.max(3, smoothed[i] * (h - 6));
-        const x = i * (barW + gap);
-        const y = mid - barH / 2;
-
-        const grad = ctx2d.createLinearGradient(0, y, 0, y + barH);
-        grad.addColorStop(0, "#F0D9A0");
-        grad.addColorStop(0.5, "#D9B26B");
-        grad.addColorStop(1, "#8A1320");
-        ctx2d.fillStyle = grad;
-        ctx2d.shadowColor = "rgba(217,178,107,0.45)";
-        ctx2d.shadowBlur = 6;
-        const r = Math.min(barW / 2, 4);
-        ctx2d.beginPath();
-        ctx2d.roundRect(x, y, barW, barH, r);
-        ctx2d.fill();
-      }
-      ctx2d.shadowBlur = 0;
-
-      // Tainted/cross-origin stream → all zeros. Give it a few frames, then fall back.
-      if (sum === 0) {
-        if (++warmFrames > 12) {
-          setReactive(false);
-          stopDraw();
-          return;
-        }
-      } else {
-        warmFrames = 0;
-      }
-      rafRef.current = requestAnimationFrame(render);
-    };
-    render();
-  }, [stopDraw]);
-
-  const ensureGraph = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (ctxRef.current) return;
-    try {
-      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AC();
-      const source = ctx.createMediaElementSource(audio);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.82;
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-      ctxRef.current = ctx;
-      sourceRef.current = source;
-      analyserRef.current = analyser;
-    } catch {
-      setReactive(false); // Web Audio unavailable → CSS fallback
-    }
-  }, []);
-
   const play = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !url) return;
     announceMusicPlay(SECTION_ID);
-    ensureGraph();
-    void ctxRef.current?.resume();
-    void audio.play().then(() => {
-      setPlaying(true); // the draw effect picks up the reactive spectrum
-    }).catch(() => setPlaying(false));
-  }, [url, ensureGraph]);
+    void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  }, [url]);
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
     setPlaying(false);
-    stopDraw();
-  }, [stopDraw]);
+  }, []);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
@@ -243,16 +100,6 @@ export function MusicSection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
-  // Drive the canvas: reactive spectrum while playing, calm baseline while idle.
-  useEffect(() => {
-    if (!reactive) return;
-    stopDraw();
-    if (playing && analyserRef.current) draw();
-    else drawIdle();
-    return () => stopDraw();
-  }, [reactive, playing, draw, drawIdle, stopDraw]);
-
-  useEffect(() => () => stopDraw(), [stopDraw]);
 
   if (playable.length === 0 && !isEditing) return null;
 
@@ -261,8 +108,54 @@ export function MusicSection() {
   const pct = dur > 0 ? (cur / dur) * 100 : 0;
   const multi = playable.length > 1;
 
+  const bgUrl = (music.bgImageUrl || "").trim();
+  const bgStyle = bgUrl
+    ? {
+        // Scrim keeps the ivory type and the vinyl legible over the photograph.
+        backgroundImage: `linear-gradient(180deg, rgba(42,10,14,0.84) 0%, rgba(42,10,14,0.72) 45%, rgba(42,10,14,0.9) 100%), url(${bgUrl})`,
+      }
+    : undefined;
+
   return (
-    <section id="music" className="section section--dark music-section">
+    <section
+      id="music"
+      className={`section section--dark music-section${bgUrl ? " music-section--photo" : ""}`}
+    >
+      {bgUrl ? <div className="music-section__bg" style={bgStyle} aria-hidden /> : null}
+
+      {isEditing ? (
+        <div className="music-section__bg-actions" role="toolbar" aria-label="Music background">
+          <span className="music-section__bg-label">Section background</span>
+          <input
+            ref={bgUpload.inputRef}
+            type="file"
+            accept={IMAGE_UPLOAD_ACCEPT}
+            style={{ display: "none" }}
+            aria-hidden
+            onChange={bgUpload.onInputChange}
+          />
+          <button
+            type="button"
+            className="adm-btn adm-btn--sm"
+            disabled={bgUpload.busy || !bgUpload.canUpload}
+            onClick={() => bgUpload.pickFile()}
+            title={bgUpload.canUpload ? "Upload a photo" : "Unlock the editor with your PIN first"}
+          >
+            {bgUpload.busy ? "Uploading…" : bgUrl ? "Replace photo" : "Upload photo"}
+          </button>
+          {bgUrl ? (
+            <button
+              type="button"
+              className="adm-btn adm-btn--sm adm-btn--ghost"
+              onClick={() => patchContent({ music: { bgImageUrl: "" } })}
+            >
+              Remove
+            </button>
+          ) : null}
+          {bgUpload.err ? <span className="music-section__bg-err">{bgUpload.err}</span> : null}
+        </div>
+      ) : null}
+
       <SectionHead
         eyebrow={music.eyebrowLabel}
         eyebrowLabel={music.eyebrowLabel}
@@ -276,11 +169,10 @@ export function MusicSection() {
       <audio
         ref={audioRef}
         src={url || undefined}
-        crossOrigin="anonymous"
         preload="metadata"
         onTimeUpdate={e => setCur((e.target as HTMLAudioElement).currentTime)}
         onLoadedMetadata={e => setDur((e.target as HTMLAudioElement).duration)}
-        onEnded={() => (multi ? next() : (setPlaying(false), stopDraw()))}
+        onEnded={() => (multi ? next() : setPlaying(false))}
         onPause={() => setPlaying(false)}
       />
 
@@ -304,35 +196,6 @@ export function MusicSection() {
             <div className="music-stage__eyebrow">{playing ? "Now playing" : "Press play"}</div>
             <h3 className="music-stage__title">{title}</h3>
             {artist ? <p className="music-stage__artist">{artist}</p> : null}
-
-            {/* Audio-reactive wave (canvas) with an animated CSS fallback */}
-            <div className={`music-viz${playing ? " is-playing" : ""}`} aria-hidden>
-              <canvas
-                ref={canvasRef}
-                width={560}
-                height={88}
-                className="music-viz__canvas"
-                style={{ display: reactive ? "block" : "none" }}
-              />
-              {!reactive ? (
-                <div className={`music-viz__bars${playing ? " is-playing" : ""}`}>
-                  {Array.from({ length: BAR_COUNT }).map((_, i) => {
-                    // sine envelope → centre bars are tallest, like a real waveform
-                    const env = Math.sin((i / (BAR_COUNT - 1)) * Math.PI);
-                    return (
-                      <i
-                        key={i}
-                        style={{
-                          ["--peak" as string]: `${Math.round(34 + env * 56)}%`,
-                          animationDelay: `${(i * -0.045).toFixed(3)}s`,
-                          animationDuration: `${(0.7 + (i % 7) * 0.06).toFixed(2)}s`,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
 
             <div
               className="music-progress"

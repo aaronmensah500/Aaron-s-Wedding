@@ -140,6 +140,8 @@ const WEDDING_CONTENT_DEFAULT = {
     /** Show the floating play button on the site. */
     enabled: true,
     autoplayHint: "Tap to play our songs",
+    /** Photo behind the "Our songs" section — upload via the editor. */
+    bgImageUrl: "",
     /** Home "Our Songs" section heading. */
     eyebrowLabel: "The soundtrack",
     titleLine1: "Our ",
